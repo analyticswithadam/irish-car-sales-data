@@ -88,6 +88,9 @@ print(df_county.head())
 conn.close()
 ```
 
+> [!NOTE]
+> When importing from the repository root, ensure `scripts/__init__.py` exists so `scripts` is resolved as a Python package.
+
 ---
 
 ## Core Analytical Views
@@ -109,6 +112,13 @@ To install this skill into an **Antigravity** or agentic coding workspace:
    git clone https://github.com/analyticswithadam/irish-car-sales-data.git .agents/skills/irish-car-sales-data
    ```
 2. The agent will automatically discover `SKILL.md` and utilize the tools, scripts, and analytical database.
+
+---
+
+## Data Sources and Terms
+
+* **Central Statistics Office (CSO) Ireland**: Official vehicle licensing data is retrieved via the open CSO PxStat REST API under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.
+* **Society of the Irish Motor Industry (SIMI)**: Live motor statistics and brand/model rankings are sourced from the public SIMI Motorstats portal (`stats.simi.ie`). Users should check and review SIMI's terms and conditions before republication or commercial reuse.
 
 ---
 

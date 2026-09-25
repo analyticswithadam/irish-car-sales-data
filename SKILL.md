@@ -4,10 +4,14 @@ description: >-
   Guides retrieval, extraction, querying, and analysis of official Irish vehicle registrations
   and car sales data from SIMI (Society of the Irish Motor Industry) and CSO Ireland (Central
   Statistics Office). Includes turnkey SQLite database management, EV transition analysis, and
-  market intelligence workflows.
+  market intelligence workflows. Use when asked questions about Irish car sales, new car
+  registrations Ireland, EV sales by county, SIMI, CSO vehicle data, or best-selling cars in Ireland.
 ---
 
 # Irish Car Sales & Vehicle Registrations Intelligence Skill
+
+> [!CRITICAL]
+> **Query Rule**: Never state a market figure from this file. Always query the database for current values and cite the table or view used.
 
 Use this skill to query, extract, normalize, and analyze official vehicle registration and car sales statistics for the Republic of Ireland.
 
@@ -131,10 +135,10 @@ Every SIMI table includes both dynamic annual columns (`units_YYYY`) and standar
 | `simi_passenger_models` | Passenger | `make`, `model` | `make`, `model`, `rank_latest`, `units_latest`, `market_share_pct_latest`, `change_pct_latest` |
 | `simi_passenger_fuels` | Passenger | `engine_type` | `engine_type`, `units_latest`, `market_share_pct_latest`, `change_pct_latest` |
 | `simi_passenger_counties`| Passenger | `county` | `county`, `units_latest`, `market_share_pct_latest`, `change_pct_latest` |
-| `simi_passenger_transmissions`| Passenger | `transmission` | `transmission` (Automatic ~81% vs Manual ~19%), `units_latest`, `market_share_pct_latest` |
-| `simi_passenger_body_types`| Passenger | `body_type` | `body_type` (SUV ~60%, Hatchback, Saloon, Estate), `units_latest`, `market_share_pct_latest` |
-| `simi_passenger_segments` | Passenger | `segment` | `segment` (B-Segment, Small SUV, Medium SUV), `units_latest` |
-| `simi_passenger_colours` | Passenger | `colour` | `colour` (Grey ~38%, Black, White, Blue, Red), `units_latest`, `market_share_pct_latest` |
+| `simi_passenger_transmissions`| Passenger | `transmission` | `transmission` (transmission type e.g. Automatic, Manual), `units_latest`, `market_share_pct_latest` |
+| `simi_passenger_body_types`| Passenger | `body_type` | `body_type` (body configuration e.g. SUV, Hatchback, Saloon, Estate), `units_latest`, `market_share_pct_latest` |
+| `simi_passenger_segments` | Passenger | `segment` | `segment` (market segment e.g. B-Segment, Small SUV, Medium SUV), `units_latest` |
+| `simi_passenger_colours` | Passenger | `colour` | `colour` (exterior colour e.g. Grey, Black, White, Blue, Red), `units_latest`, `market_share_pct_latest` |
 | `simi_passenger_monthly` | Passenger | `month`, `month_num` | `month`, `month_num`, `units_latest`, `change_pct_latest`, `units_prev` |
 | `simi_passenger_ytd_totals` | Passenger | `year` | `year`, `ytd_units`, `change_pct`, `is_latest` |
 | `simi_lcv_makes` / `totals`| Light Commercial | `make` | Van brand rankings and annual totals |
@@ -155,7 +159,7 @@ Every SIMI table includes both dynamic annual columns (`units_YYYY`) and standar
 ```python
 import sqlite3
 import pandas as pd
-from ensure_data import ensure_database
+from scripts.ensure_data import ensure_database
 
 # 1. Ensure database is present (auto-builds if missing)
 db_path = ensure_database("data/irish_car_sales.db")
@@ -185,7 +189,7 @@ SIMI's portal is built on Laravel and Inertia.js. Full datasets are served as **
   3. Extract `version`, `component` (`Public/Passenger`), and keys from `deferredProps`.
   4. Issue secondary GET request with headers:
      `X-Inertia: true`, `X-Inertia-Version: <hash>`, `X-Inertia-Partial-Component: <comp>`, `X-Inertia-Partial-Data: <keys>`.
-* Detailed guide: [references/simi_api_reference.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/simi_api_reference.md)
+* Detailed guide: [references/simi_api_reference.md](references/simi_api_reference.md)
 
 ### Workflow 2: Pulling Historical Cubes from CSO Ireland
 CSO publishes open datasets via the PxStat REST API without authentication:
@@ -194,7 +198,7 @@ CSO publishes open datasets via the PxStat REST API without authentication:
   https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.ReadDataset/{TABLE_CODE}/CSV/1.0/en
   ```
 * **Guardrails**: Avoid unbounded requests to `TEM24` and `TEM25` (5M+ cells causes `HTTP 403 Forbidden`). Use `TEM20` for models and `TEM27` for county fuel splits.
-* Detailed guide: [references/cso_table_catalog.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/cso_table_catalog.md)
+* Detailed guide: [references/cso_table_catalog.md](references/cso_table_catalog.md)
 
 ### Workflow 3: Electric Vehicle (EV) Transition & Powertrain Intelligence
 * **Powertrain Categorization**:
@@ -204,9 +208,14 @@ CSO publishes open datasets via the PxStat REST API without authentication:
 * **Model Identification**:
   * Pure BEV brands: `TESLA`, `POLESTAR`, `XPENG`, `SMART`, `LUCID`, `NIO`.
   * Dedicated BEV models: `Volkswagen ID.4`/`ID.3`/`ID.7`, `Škoda Enyaq`/`Elroq`, `Kia EV3`/`EV6`, `Hyundai Ioniq 5`/`Inster`, `BYD Atto 3`/`Dolphin`/`Seal`, `Volvo EX30`.
-* **Commuter Belt Hotspots**:
-  * Commuter counties (Wicklow, Kildare, Meath) consistently outperform urban Dublin in EV penetration due to private driveway ownership (>85%), cheap overnight charging (€0.07/kWh), long motorway mileage arbitrage, and corporate 0% BIK fleet adoption.
-* Detailed guide: [references/ev_analysis_guide.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/ev_analysis_guide.md)
+### Hypotheses to Test
+When analyzing EV adoption and geographic trends, investigate these questions against the data rather than assuming fixed conclusions:
+* Do commuter counties (e.g. Wicklow, Kildare, Meath) outperform urban Dublin in EV penetration rates? Does higher private off-street driveway availability enabling home wallbox installation correlate with this difference?
+* Does daily long-distance motorway mileage create significant fuel cost arbitrage that accelerates EV adoption in suburban belts?
+* How does commercial fleet adoption under corporate Benefit-in-Kind (BIK) tax incentives influence registration volumes in commuter corridors?
+* Do rural border or western counties show lower EV adoption due to charging network density or commercial vehicle usage patterns?
+
+* Detailed guide: [references/ev_analysis_guide.md](references/ev_analysis_guide.md)
 
 ---
 
@@ -226,6 +235,6 @@ The skill includes standalone utilities in its `scripts/` directory:
 ---
 
 ## 6. References & Documentation Index
-* **CSO Table Catalog & Schemas**: [cso_table_catalog.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/cso_table_catalog.md)
-* **SIMI Inertia Protocol & Deferred Props**: [simi_api_reference.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/simi_api_reference.md)
-* **EV Powertrains, Models, Policy & Geography**: [ev_analysis_guide.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/ev_analysis_guide.md)
+* **CSO Table Catalog & Schemas**: [cso_table_catalog.md](references/cso_table_catalog.md)
+* **SIMI Inertia Protocol & Deferred Props**: [simi_api_reference.md](references/simi_api_reference.md)
+* **EV Powertrains, Models, Policy & Geography**: [ev_analysis_guide.md](references/ev_analysis_guide.md)

@@ -207,6 +207,6 @@ LIMIT 10;
 ---
 
 ## 4. Cross-Reference Index
-* For live monthly data and transmission/body styles: [simi_api_reference.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/simi_api_reference.md)
-* For EV taxonomy, OEM model rules, and incentives: [ev_analysis_guide.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/ev_analysis_guide.md)
-* For main skill workflows and database architecture: [SKILL.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/SKILL.md)
+* For live monthly data and transmission/body styles: [simi_api_reference.md](simi_api_reference.md)
+* For EV taxonomy, OEM model rules, and incentives: [ev_analysis_guide.md](ev_analysis_guide.md)
+* For main skill workflows and database architecture: [SKILL.md](../SKILL.md)

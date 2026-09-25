@@ -2,25 +2,28 @@
 
 This guide details methodologies, data classification rules, policy frameworks, and SQL analytical patterns for analyzing the electric vehicle market, battery electrification trends, and powertrain transitions in Ireland.
 
+> [!CRITICAL]
+> **Query Rule**: Never state a market figure from this file. Always query the database for current values and cite the table or view used.
+
 ---
 
 ## 1. Powertrain Taxonomy & Market Definitions
 
 In Irish automotive statistics, vehicles are categorized across five primary powertrain groups:
 
-| Powertrain Category | SIMI Fuel Code | CSO Fuel Code (`TEM12`, `TEM27`) | 2026 Market Share | Analytical Definition & Inclusions |
-| :--- | :--- | :--- | :--- | :--- |
-| **Pure BEV** | `Electric` | `Electric` | **26.30%** | Pure Battery Electric Vehicle (100% electric, zero tailpipe emissions). |
-| **PHEV** | `Petrol/Plug-In Electric Hybrid`, `Diesel/Plug-In Electric Hybrid` | `Petrol or Diesel plug-in hybrid electric` | **14.85%** | Plug-in Hybrid Electric Vehicle with external charging socket and internal combustion engine backup. |
-| **HEV (Self-Charging)** | `Petrol Electric (Hybrid)`, `Diesel Electric (Hybrid)` | `Petrol and electric hybrid`, `Diesel and electric hybrid` | **25.78%** | Self-charging mild/full hybrid without external plug-in socket (kinetic brake regeneration). |
-| **ICE (Petrol)** | `Petrol` | `Petrol` | **20.09%** | Pure internal combustion engine running on unleaded petrol. |
-| **ICE (Diesel)** | `Diesel` | `Diesel` | **12.56%** | Pure internal combustion compression-ignition diesel engine. |
+| Powertrain Category | SIMI Fuel Code | CSO Fuel Code (`TEM12`, `TEM27`) | Analytical Definition & Inclusions |
+| :--- | :--- | :--- | :--- |
+| **Pure BEV** | `Electric` | `Electric` | Pure Battery Electric Vehicle (100% electric, zero tailpipe emissions). |
+| **PHEV** | `Petrol/Plug-In Electric Hybrid`, `Diesel/Plug-In Electric Hybrid` | `Petrol or Diesel plug-in hybrid electric` | Plug-in Hybrid Electric Vehicle with external charging socket and internal combustion engine backup. |
+| **HEV (Self-Charging)** | `Petrol Electric (Hybrid)`, `Diesel Electric (Hybrid)` | `Petrol and electric hybrid`, `Diesel and electric hybrid` | Self-charging mild/full hybrid without external plug-in socket (kinetic brake regeneration). |
+| **ICE (Petrol)** | `Petrol` | `Petrol` | Pure internal combustion engine running on unleaded petrol. |
+| **ICE (Diesel)** | `Diesel` | `Diesel` | Pure internal combustion compression-ignition diesel engine. |
 
 ### Analytical Aggregation Rules:
-* **"Pure EV" (or "BEV")**: Refers exclusively to **BEV** (32,072 units / **26.30% share** in 2026 YTD).
-* **"Total Plug-in"**: BEV + PHEV (50,179 units / **41.15% share**). Over 4 in every 10 new cars registered have an external charge port.
-* **"Total Electrified"**: BEV + PHEV + HEV (**66.93% share**). Two out of every three new cars sold in Ireland feature an electric traction motor.
-* **The "EV vs. Diesel Crossover"**: In 2025/2026, pure BEVs decisively overtook Diesel in Irish registrations, reversing a 20-year diesel dominance initiated by the 2008 CO2-based motor tax reform.
+* **"Pure EV" (or "BEV")**: Refers exclusively to **BEV** (`Electric`).
+* **"Total Plug-in"**: Combined BEV + PHEV (all vehicles equipped with an external charging port).
+* **"Total Electrified"**: Combined BEV + PHEV + HEV (all vehicles featuring an electric traction motor).
+* **The "EV vs. Diesel Crossover"**: The inflection point where pure BEV registrations surpass Diesel registrations.
 
 ---
 
@@ -38,13 +41,13 @@ Every registration from these manufacturers is guaranteed 100% pure BEV:
 
 ### 2.2 Dedicated Ground-Up BEV Models (By OEM)
 * **Volkswagen Group**:
-  * **Volkswagen**: `ID.3`, `ID.4` (#1 EV in Ireland), `ID.5`, `ID.7`, `ID BUZZ PC`
+  * **Volkswagen**: `ID.3`, `ID.4`, `ID.5`, `ID.7`, `ID BUZZ PC`
   * **Škoda**: `ENYAQ`, `ELROQ`
   * **CUPRA**: `BORN`, `TAVASCAN`
   * **Audi**: `Q4 E-TRON`, `Q6 E-TRON`, `Q8 E-TRON`, `E-TRON GT`
   * **Porsche**: `TAYCAN`, `MACAN ELECTRIC`
 * **Hyundai Motor Group**:
-  * **Kia**: `EV2`, `EV3` (2025/2026 sales surge), `EV4`, `EV5`, `EV6`, `EV9`
+  * **Kia**: `EV2`, `EV3`, `EV4`, `EV5`, `EV6`, `EV9`
   * **Hyundai**: `IONIQ`, `IONIQ 5`, `IONIQ 6`, `IONIQ 9`, `INSTER` (Sub-€25k entry EV)
 * **BYD (Build Your Dreams)**:
   * Pure BEVs: `ATTO 3`, `DOLPHIN`, `DOLPHIN SURF`, `SEAL`, `SEALION 7`, `SEALION 5`
@@ -57,33 +60,28 @@ Every registration from these manufacturers is guaranteed 100% pure BEV:
 * **Stellantis**:
   * `PEUGEOT E-208`, `PEUGEOT E-2008`, `PEUGEOT E-3008`, `FIAT 500E`, `JEEP AVENGER EV`, `OPEL CORSA-E`, `OPEL MOKKA-E`
 * **Other Major Nameplates**:
-  * **Volvo**: `EX30` (Top 5 EV), `EX40`, `EC40`, `EX90`
-  * **Renault**: `ZOE` (Historical pioneer), `MEGANE E-TECH`, `SCENIC E-TECH`, `5 E-TECH`
-  * **Nissan**: `LEAF` (First mass-market EV in Ireland), `ARIYA`
+  * **Volvo**: `EX30`, `EX40`, `EC40`, `EX90`
+  * **Renault**: `ZOE`, `MEGANE E-TECH`, `SCENIC E-TECH`, `5 E-TECH`
+  * **Nissan**: `LEAF`, `ARIYA`
   * **Ford**: `EXPLORER`, `CAPRI`, `MUSTANG MACH-E`
-  * **MG**: `MG4` (High-volume budget benchmark), `CYBERSTER`, `ZS EV`, `MG5`
+  * **MG**: `MG4`, `CYBERSTER`, `ZS EV`, `MG5`
 
 ---
 
-## 3. Spatial Dynamics: The Commuter Belt Phenomenon
+## 3. Spatial Dynamics & Geographic Patterns
 
-When evaluating geographic EV adoption using CSO `TEM27`:
+When evaluating geographic EV adoption using CSO `TEM27` and dynamic view `v_county_ev_ranking_latest`:
 * **Raw Volume vs. Market Penetration**:
-  * Dublin accounts for the highest raw volume (~35.5% of all national EVs, with 10,858 units), but ranks **10th in market penetration (26.60%)**.
-  * Urban apartment density, on-street terraced housing, and shared parking limit overnight home charging availability in Dublin City.
-* **Commuter Belt Hotspots (2026 Rankings)**:
-  1. **Wicklow**: **39.66%** EV share (National Leader)
-  2. **Kildare**: **35.13%** EV share
-  3. **Meath**: **34.75%** EV share
-  4. **Westmeath**: **30.29%** EV share
-  5. **Louth**: **29.55%** EV share
-* **Rural Border & Western Counties**:
-  * Counties like Donegal (14.2%), Monaghan (15.1%), Leitrim (16.8%), and Mayo (17.4%) exhibit significantly lower penetration due to longer inter-urban distances, perceived charging desert fears, and high diesel preference for agricultural/towing utility.
+  * Absolute registrations reflect population size (e.g. Dublin accounting for the largest total vehicle count).
+  * Adoption rate (`ev_penetration_pct`) measures the proportion of new vehicle registrations that are pure BEV within each licensing authority.
+  * Always query `v_county_ev_ranking_latest` to retrieve current penetration rankings across all 26 licensing authorities.
 
-### Three Structural Drivers of Commuter Belt Adoption:
-1. **Driveway Ownership & Cheap Overnight Tariffs**: Over 85% of commuter-county dwellings are detached or semi-detached homes with private off-street driveways. This enables dedicated Level 2 wallbox installation and utilization of Night-Rate and "EV Boost" electricity tariffs (€0.07–€0.10/kWh), costing as little as €5 to €8 for a full 400+ km charge.
-2. **Motorway Commute Arbitrage**: Daily commuters traveling 70–120 km on the M7, M4, or M11 clock 25,000–35,000 km annually. Fuel arbitrage saves between €2,500 and €4,000 per year compared to diesel/petrol, completely amortizing vehicle price premiums within 2.5 years.
-3. **Corporate Fleet Schemes & BIK Exemption**: High concentration of corporate, tech, financial, and pharmaceutical professionals utilizing Ireland's Benefit-in-Kind (BIK) preferential tax regime.
+### Hypotheses to Test
+When analyzing EV adoption and geographic trends, investigate these questions against the data rather than assuming fixed conclusions:
+* **Commuter Belt vs. Urban Core**: Do commuter counties surrounding Dublin (such as Wicklow, Kildare, and Meath) exhibit higher EV penetration rates than Dublin City? Does housing stock (off-street driveway availability enabling home wallbox installation vs high-density apartments and terraced housing) correlate with penetration differences?
+* **Mileage and Operating Cost Arbitrage**: Do long-distance daily commuters on major motorway corridors (e.g. M7, M4, M11) have stronger economic incentives to transition to electric vehicles due to operating cost savings compared to internal combustion engines?
+* **Incentive Utilization**: How do corporate and fleet schemes under Benefit-in-Kind (BIK) tax relief influence EV registration concentrations in commuter employment hubs?
+* **Rural and Regional Adoption**: Do rural, western, or border counties exhibit lower EV penetration rates, and can this be attributed to charging infrastructure density, trip lengths, or vehicle utility requirements (e.g. agricultural/commercial towing)?
 
 ---
 
@@ -93,7 +91,7 @@ The Irish EV market trajectory has been heavily dictated by governmental fiscal 
 
 | Incentive Instrument | Peak Era (2019–2023) | Current Status (2024–2026) | Market Consequence |
 | :--- | :--- | :--- | :--- |
-| **SEAI Purchase Grant** | €5,000 direct purchase grant on private BEVs | Reduced to €3,500 for vehicles priced €14,000–€60,000 | The July 2023 / Jan 2024 grant cuts triggered a temporary -23.5% YoY sales contraction in 2024 ("subsidy hangover"). |
+| **SEAI Purchase Grant** | €5,000 direct purchase grant on private BEVs | Reduced to €3,500 for vehicles priced €14,000–€60,000 | Grant cuts coincided with a sales contraction in 2024 ("subsidy hangover"). Query the database to measure the exact YoY impact. |
 | **VRT Relief** | Up to €5,000 vehicle registration tax relief | Tapered relief up to €40,000 OMSP; steps to €0 at €50,000 | Created a severe "cliff edge" where EVs over €50,000 incur full VRT rates, forcing OEMs to reprice premium models below €50k. |
 | **Benefit-in-Kind (BIK)** | 0% BIK exemption on company cars up to €50,000 | €35,000 relief band with phased annual tapering | Maintained massive commercial fleet driver demand for company electric cars. |
 | **Home Charger Grant** | €600 SEAI grant towards home wallbox installation | €300 SEAI grant | Seeded Ireland's pervasive private home-charging infrastructure. |
@@ -158,6 +156,6 @@ ORDER BY ev_penetration_pct DESC;
 ---
 
 ## 6. Cross-Reference Index
-* For official CSO tables and schema reference: [cso_table_catalog.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/cso_table_catalog.md)
-* For SIMI real-time Inertia extraction guide: [simi_api_reference.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/simi_api_reference.md)
-* For database schema and turnkey rebuild pipelines: [SKILL.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/SKILL.md)
+* For official CSO tables and schema reference: [cso_table_catalog.md](cso_table_catalog.md)
+* For SIMI real-time Inertia extraction guide: [simi_api_reference.md](simi_api_reference.md)
+* For database schema and turnkey rebuild pipelines: [SKILL.md](../SKILL.md)

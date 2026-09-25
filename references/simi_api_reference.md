@@ -174,6 +174,6 @@ python3 .agents/skills/irish-car-sales-data/scripts/pull_simi.py --output data/s
 ---
 
 ## 5. Cross-Reference Index
-* For historical multi-decade time series and cubes: [cso_table_catalog.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/cso_table_catalog.md)
-* For EV powertrain rules and OEM models: [ev_analysis_guide.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/references/ev_analysis_guide.md)
-* For database schema and CLI query recipes: [SKILL.md](file:///Users/adamg/Documents/Agents/Data%20Analysis/Mysterio/.agents/skills/irish-car-sales-data/SKILL.md)
+* For historical multi-decade time series and cubes: [cso_table_catalog.md](cso_table_catalog.md)
+* For EV powertrain rules and OEM models: [ev_analysis_guide.md](ev_analysis_guide.md)
+* For database schema and CLI query recipes: [SKILL.md](../SKILL.md)
