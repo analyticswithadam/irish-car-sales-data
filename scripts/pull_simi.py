@@ -14,8 +14,10 @@ import os
 import sys
 import argparse
 import pandas as pd
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
+# Certificate verification is off because some networks intercept TLS with a self-signed proxy cert.
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
@@ -26,9 +28,8 @@ HEADERS = {
 
 def fetch_simi_category(category=''):
     url = f'https://stats.simi.ie/{category}'
-    print(f"Fetching SIMI initial page: {url}")
     req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, context=ctx) as resp:
+    with urllib.request.urlopen(req, context=ctx, timeout=60) as resp:
         content = resp.read().decode('utf-8', errors='ignore')
         
     m = re.search(r'data-page=\"([^\"]+)\"', content)
@@ -38,12 +39,12 @@ def fetch_simi_category(category=''):
     page_data = json.loads(html.unescape(m.group(1)))
     version = page_data.get('version')
     component = page_data.get('component')
+    if component == 'Public/Updating' or not page_data.get('deferredProps'):
+        # SIMI takes the portal offline while it loads each month's figures (usually the 1st).
+        raise RuntimeError(f"SIMI portal is not serving data right now (component={component}); try again later")
     deferred_props_map = page_data.get('deferredProps', {})
     deferred = list(deferred_props_map.keys())
     env_date = page_data.get('props', {}).get('environmentDate')
-    
-    print(f"  Component: {component} | Version: {version} | Environment Date: {env_date}")
-    print(f"  Deferred keys to request: {deferred}")
     
     partial_data = ','.join(deferred)
     req2 = urllib.request.Request(
@@ -58,7 +59,7 @@ def fetch_simi_category(category=''):
             'X-Requested-With': 'XMLHttpRequest'
         }
     )
-    with urllib.request.urlopen(req2, context=ctx) as resp2:
+    with urllib.request.urlopen(req2, context=ctx, timeout=60) as resp2:
         res = json.loads(resp2.read().decode('utf-8'))
         props = res.get('props', {})
         props['_meta'] = {
@@ -205,56 +206,53 @@ def parse_monthly_table(table_dict):
     
     return df_monthly, df_totals
 
+TABLE_MAPPINGS = [
+    ('carsByMake', 'by_make', 'make'),
+    ('carsByModel', 'by_model', 'model'),
+    ('carsByEngineType', 'by_fuel_engine', 'engine_type'),
+    ('carsByTransmission', 'by_transmission', 'transmission'),
+    ('carsByBodyType', 'by_body_type', 'body_type'),
+    ('carsByCounty', 'by_county', 'county'),
+    ('carsBySegment', 'by_segment', 'segment'),
+    ('carsByColour', 'by_colour', 'colour'),
+    ('carsByCo2Band', 'by_co2_band', 'co2_band'),
+    ('carsByWeight', 'by_weight', 'weight'),
+]
+
+SIMI_CATEGORIES = [('', 'passenger'), ('lcv', 'lcv'), ('hcv', 'hcv'), ('bus', 'bus')]
+
+def download_simi_category(url_cat, name, output_dir):
+    """Fetches one SIMI category and writes its raw JSON plus one CSV per breakdown."""
+    try:
+        props = fetch_simi_category(url_cat)
+        with open(f"{output_dir}/simi_{name}_raw.json", "w") as f:
+            json.dump(props, f)
+
+        saved = []
+        total_table = props.get('totalRegistrationsTable') or props.get('totalRegistrations')
+        if total_table:
+            df_monthly, df_totals = parse_monthly_table(total_table)
+            df_monthly.to_csv(f"{output_dir}/{name}_monthly.csv", index=False)
+            df_totals.to_csv(f"{output_dir}/{name}_ytd_totals.csv", index=False)
+            saved += ['monthly', 'ytd_totals']
+
+        for prop_key, suffix, col_name in TABLE_MAPPINGS:
+            if props.get(prop_key):
+                df = parse_generic_breakdown(props[prop_key], key_name=col_name)
+                if not df.empty:
+                    df.to_csv(f"{output_dir}/{name}_{suffix}.csv", index=False)
+                    saved.append(suffix)
+        print(f"  [SIMI] {name}: {len(saved)} tables ({props['_meta']['environmentDate']})")
+        return props['_meta']
+    except Exception as e:
+        print(f"  [SIMI] Error processing category {name}: {e}", file=sys.stderr)
+        return None
+
 def download_all_simi(output_dir='data/simi'):
-    """Programmatic entry point to pull all SIMI categories."""
+    """Programmatic entry point: pulls all SIMI categories in parallel."""
     os.makedirs(output_dir, exist_ok=True)
-    categories = [
-        ('', 'passenger'),
-        ('lcv', 'lcv'),
-        ('hcv', 'hcv'),
-        ('bus', 'bus')
-    ]
-    
-    for url_cat, name in categories:
-        try:
-            print(f"\n================ Processing SIMI {name.upper()} ================")
-            props = fetch_simi_category(url_cat)
-            
-            with open(f"{output_dir}/simi_{name}_raw.json", "w") as f:
-                json.dump(props, f, indent=2)
-                
-            total_table = props.get('totalRegistrationsTable') or props.get('totalRegistrations')
-            if total_table:
-                df_monthly, df_totals = parse_monthly_table(total_table)
-                df_monthly.to_csv(f"{output_dir}/{name}_monthly.csv", index=False)
-                df_totals.to_csv(f"{output_dir}/{name}_ytd_totals.csv", index=False)
-                print(f"  Saved {name}_monthly.csv and {name}_ytd_totals.csv")
-                
-            table_mappings = [
-                ('carsByMake', f'{name}_by_make.csv', 'make'),
-                ('carsByModel', f'{name}_by_model.csv', 'model'),
-                ('carsByEngineType', f'{name}_by_fuel_engine.csv', 'engine_type'),
-                ('carsByTransmission', f'{name}_by_transmission.csv', 'transmission'),
-                ('carsByBodyType', f'{name}_by_body_type.csv', 'body_type'),
-                ('carsByCounty', f'{name}_by_county.csv', 'county'),
-                ('carsBySegment', f'{name}_by_segment.csv', 'segment'),
-                ('carsByColour', f'{name}_by_colour.csv', 'colour'),
-                ('carsByCo2Band', f'{name}_by_co2_band.csv', 'co2_band'),
-                ('carsByWeight', f'{name}_by_weight.csv', 'weight')
-            ]
-            
-            for prop_key, filename, col_name in table_mappings:
-                if prop_key in props and props[prop_key]:
-                    df = parse_generic_breakdown(props[prop_key], key_name=col_name)
-                    if not df.empty:
-                        df.to_csv(f"{output_dir}/{filename}", index=False)
-                        print(f"  Saved {filename} ({len(df)} rows)")
-        except Exception as e:
-            print(f"Error processing category {name}: {e}", file=sys.stderr)
-            import traceback
-            traceback.print_exc()
-            
-    print(f"\n[SIMI] Completed extraction into {output_dir}")
+    with ThreadPoolExecutor(max_workers=len(SIMI_CATEGORIES)) as pool:
+        list(pool.map(lambda c: download_simi_category(c[0], c[1], output_dir), SIMI_CATEGORIES))
     return output_dir
 
 def main():
@@ -268,11 +266,7 @@ def main():
     else:
         cats = {'passenger': '', 'lcv': 'lcv', 'hcv': 'hcv', 'bus': 'bus'}
         os.makedirs(args.output, exist_ok=True)
-        props = fetch_simi_category(cats[args.category])
-        name = args.category
-        with open(f"{args.output}/simi_{name}_raw.json", "w") as f:
-            json.dump(props, f, indent=2)
-        print(f"Saved {args.output}/simi_{name}_raw.json")
+        download_simi_category(cats[args.category], args.category, args.output)
 
 if __name__ == '__main__':
     main()

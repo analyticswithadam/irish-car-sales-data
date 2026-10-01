@@ -137,7 +137,7 @@ FROM v_model_historical_trajectory
 WHERE full_name IN (
     'Volkswagen ID.4', 'Tesla Model 3', 'Tesla Model Y', 'Nissan Leaf',
     'Skoda Enyaq', 'Volkswagen ID.3', 'Kia EV6', 'Kia EV3', 'Hyundai Ioniq 5',
-    'BYD Atto 3', 'BYD Seal', 'MG 4', 'Volvo EX30', 'BMW i4', 'Renault Zoe'
+    'BYD Atto 3', 'BYD Seal', 'MG MG4', 'Volvo EX30', 'BMW i4', 'Renault Zoe'
 )
 GROUP BY full_name, make, model
 ORDER BY cumulative_units DESC;
