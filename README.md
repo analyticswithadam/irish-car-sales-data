@@ -13,10 +13,10 @@ Built for AI coding assistants, autonomous agents, data scientists, and automoti
 ## Highlights
 
 * **Official NVDF Ground Truth**: Ingests data from the **Central Statistics Office (CSO) Ireland** (30+ years of monthly cubes) and the **Society of the Irish Motor Industry (SIMI)** (live monthly registrations).
-* **Self-Bootstrapping Engine**: If the local database is missing, calling any script automatically pulls official live APIs and builds the indexed SQLite database in ~10 seconds.
+* **Self-Bootstrapping Engine**: If the local database is missing, calling any script automatically pulls official live APIs and builds the indexed SQLite database in ~1–3 seconds. Databases built by older versions upgrade themselves.
 * **Time-Invariant & Futureproof**: Relational schemas use invariant fields (`year_latest`, `units_latest`, `market_share_pct_latest`, `change_pct_latest`, `year_prev`) and dynamic views (`v_county_ev_ranking_latest`) that never break across new calendar years.
 * **Comprehensive Powertrain Coverage**: Tracks the 12-year shift from Diesel dominance to Pure Battery Electric (BEV), Plug-In Hybrids (PHEV), and Self-Charging Hybrids (HEV).
-* **Zero External DB Dependencies**: Powered by standard library SQLite 3 with Write-Ahead Logging (WAL) and sub-millisecond query execution.
+* **Zero External DB Dependencies**: Powered by standard library SQLite 3 with Write-Ahead Logging (WAL). The query CLI avoids pandas, so a query returns in about 30 ms.
 
 ---
 
@@ -101,6 +101,7 @@ conn.close()
 | `v_ev_vs_diesel_crossover`| CSO `TEM12` | Monthly time series of Electric vs Diesel units and `ev_to_diesel_ratio`. |
 | `v_county_ev_ranking_latest`| CSO `TEM27` | Dynamically resolves the latest year. Returns `licensing_authority`, `year`, `ev_units`, `total_units`, `ev_penetration_pct`, `share_of_national_ev_pct`. |
 | `v_model_historical_trajectory`| CSO `TEM20` | Multi-year model-level sales volumes across 330+ distinct makes and models. |
+| `v_make_annual` | CSO `TEM20` | Annual units and market share per make, with `months_reported` to flag partial years. |
 
 ---
 

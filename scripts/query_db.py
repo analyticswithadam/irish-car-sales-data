@@ -2,6 +2,8 @@
 """
 Interactive & CLI Query Utility for the Irish Vehicle Sales Database (Bundled with irish-car-sales-data skill).
 
+Uses only the standard library (no pandas import), so a query returns in well under 100 ms.
+
 Examples:
     # Run a simple query
     python3 .agents/skills/irish-car-sales-data/scripts/query_db.py "SELECT * FROM v_powertrain_annual ORDER BY year DESC"
@@ -14,58 +16,73 @@ Examples:
 """
 
 import sys
+import os
+import csv
+import json
 import argparse
 import sqlite3
-import json
-import os
-import pandas as pd
 
-def ensure_db_ready(db_path):
-    if not os.path.exists(db_path):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        if script_dir not in sys.path:
-            sys.path.insert(0, script_dir)
-        try:
-            from ensure_data import ensure_database
-            ensure_database(db_path=db_path, verbose=True)
-        except Exception as e:
-            print(f"Error auto-building database: {e}", file=sys.stderr)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ensure_data import ensure_database
+
+def _fmt(v):
+    if v is None:
+        return ''
+    if isinstance(v, float):
+        return f"{v:,.2f}".rstrip('0').rstrip('.') if abs(v) >= 1000 else f"{v:g}"
+    return str(v)
+
+def print_table(cols, rows):
+    if not rows:
+        print("(0 rows returned)")
+        return
+    cells = [[_fmt(v) for v in r] for r in rows]
+    numeric = [all(isinstance(r[i], (int, float)) or r[i] is None for r in rows) for i in range(len(cols))]
+    widths = [max(len(c), *(len(r[i]) for r in cells)) for i, c in enumerate(cols)]
+    line = lambda vals: '  '.join(v.rjust(w) if n else v.ljust(w) for v, w, n in zip(vals, widths, numeric)).rstrip()
+    print(line(cols))
+    print('  '.join('-' * w for w in widths))
+    for r in cells:
+        print(line(r))
+    print(f"\n({len(rows)} rows)")
 
 def query_database(sql, db_path='data/irish_car_sales.db', output_format='table'):
-    ensure_db_ready(db_path)
-    conn = sqlite3.connect(db_path)
+    ensure_database(db_path, verbose=False)
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
-        df = pd.read_sql_query(sql, conn)
-        if output_format == 'json':
-            print(df.to_json(orient='records', indent=2))
-        elif output_format == 'csv':
-            print(df.to_csv(index=False))
-        else:
-            pd.set_option('display.max_columns', 15)
-            pd.set_option('display.width', 1000)
-            if df.empty:
-                print("(0 rows returned)")
-            else:
-                print(df.to_string(index=False))
-                print(f"\n({len(df)} rows)")
-    except Exception as e:
+        cur = conn.execute(sql)
+        cols = [d[0] for d in cur.description or []]
+        rows = cur.fetchall()
+    except sqlite3.Error as e:
         print(f"SQL Error: {e}", file=sys.stderr)
         sys.exit(1)
     finally:
         conn.close()
 
+    if output_format == 'json':
+        print(json.dumps([dict(zip(cols, r)) for r in rows], indent=2))
+    elif output_format == 'csv':
+        w = csv.writer(sys.stdout)
+        w.writerow(cols)
+        w.writerows(rows)
+    else:
+        print_table(cols, rows)
+
 def list_tables_and_views(db_path='data/irish_car_sales.db'):
-    ensure_db_ready(db_path)
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT type, name FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY type, name;")
-    rows = cursor.fetchall()
+    ensure_database(db_path, verbose=False)
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    rows = conn.execute("SELECT type, name FROM sqlite_master WHERE type IN ('table', 'view') "
+                        "AND name NOT LIKE 'sqlite_%' ORDER BY type, name;").fetchall()
+    info = conn.execute("SELECT key, value FROM _build_info ORDER BY key").fetchall()
     conn.close()
-    
+
     print(f"\nObjects in {db_path}:")
     print("---------------------------------------------")
     for obj_type, name in rows:
         print(f"[{obj_type.upper():5}] {name}")
+    print("\nBuild info:")
+    for k, v in info:
+        print(f"  {k}: {v}")
 
 def main():
     parser = argparse.ArgumentParser(description="Query the Irish Vehicle Sales SQLite Database.")

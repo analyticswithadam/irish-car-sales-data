@@ -126,8 +126,8 @@ ORDER BY year DESC;
 ---
 
 ### 3. `TEM20` — New Private Cars by Month & Make/Model
-* **Temporal Coverage**: January 2014 to Present (>100,000 monthly records across 330+ models).
-* **Database Table**: `cso_make_model_monthly`
+* **Temporal Coverage**: January 2014 to Present (~50,000 monthly records across 330+ models).
+* **Database Tables**: `cso_make_model_monthly` (per model) and `cso_new_private_cars_monthly` (the national "All models" total).
 * **Purpose**: Granular model-level trajectories, OEM market share competition, and specific EV model tracking.
 
 #### Schema:
@@ -137,10 +137,15 @@ ORDER BY year DESC;
 | `date_val` | `DATE` | No | ISO-8601 month start (`2026-01-01`) |
 | `year` | `INTEGER` | No | Calendar year (`2014`–`2026`) |
 | `month_num` | `INTEGER` | No | Month (`1`–`12`) |
-| `make` | `TEXT` | No | Clean uppercase make (`VOLKSWAGEN`, `TESLA`, `TOYOTA`) |
+| `make` | `TEXT` | No | Uppercase make resolved from the CSO make code (`VOLKSWAGEN`, `MERCEDES-BENZ`, `LAND ROVER`, `ALFA ROMEO`, `OTHER`) |
 | `model` | `TEXT` | No | Model designation (`ID.4`, `Model 3`, `Yaris Cross`) |
-| `full_name` | `TEXT` | No | Combined title (`Volkswagen ID.4`, `Tesla Model 3`) |
+| `full_name` | `TEXT` | No | CSO's label, unchanged (`Volkswagen ID.4`, `Landrover Defender`, `MG MG4`) |
+| `model_code` | `TEXT` | No | CSO model code; the first 3 letters identify the make (`REN027`) |
 | `units` | `INTEGER` | No | Monthly registrations |
+| `rank` | `INTEGER` | Yes | The model's rank among all models that month (CSO statistic `TEM20C02`) |
+
+#### How the raw cube maps to the table
+The TEM20 CSV carries **two statistics** for every model and month: `TEM20C01` (registrations) and `TEM20C02` (rank). The builder keeps C01 as `units` and joins C02 in as `rank`, so each model-month is one row. Loading both into `units` (the pre-v2 behaviour) roughly tripled any sum. The `All models` row is the national total and goes to `cso_new_private_cars_monthly`; `Other` stays in the table as `make = 'OTHER'`. Make names come from the 3-letter code prefix rather than the first word of the label, because CSO spells some makes inconsistently (`Mercedes Benz A Class` vs `Mercedes-Benz GLB`, `MG MG4` vs `MG5 SW EV`, `Countryman Cooper` under Mini). A make code the builder doesn't know falls back to the first word of the label. Models sum to within a few units of CSO's own total.
 
 #### SQL Recipes:
 ```sql
@@ -156,6 +161,19 @@ FROM cso_make_model_monthly
 WHERE full_name IN ('Volkswagen ID.4', 'Tesla Model Y', 'Tesla Model 3', 'Skoda Enyaq', 'Hyundai Ioniq 5', 'Kia EV6', 'BYD Atto 3', 'BYD Seal')
 GROUP BY full_name
 ORDER BY total_cumulative DESC;
+
+-- A brand's annual history with market share (partial years flagged by months_reported)
+SELECT year, units, market_share_pct, months_reported
+FROM v_make_annual
+WHERE make = 'RENAULT'
+ORDER BY year;
+
+-- That brand's model mix per year
+SELECT year, model, SUM(units) AS units
+FROM cso_make_model_monthly
+WHERE make = 'RENAULT'
+GROUP BY year, model
+ORDER BY year, units DESC;
 ```
 
 ---

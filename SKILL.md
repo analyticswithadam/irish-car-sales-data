@@ -26,7 +26,9 @@ The skill covers data from both official authorities:
 > [!IMPORTANT]
 > **Automatic Database Bootstrapping**
 > The skill is 100% self-bootstrapping and invariant to time.
-> - **If `data/irish_car_sales.db` does not exist**: Calling any analysis script or running `python3 scripts/ensure_data.py` automatically pulls official live data from SIMI and CSO Ireland, normalizes it, builds the indexed SQLite database, and cleans up temporary files in ~10 seconds.
+> - **If `data/irish_car_sales.db` does not exist**: Calling any analysis script or running `python3 scripts/ensure_data.py` automatically pulls official live data from SIMI and CSO Ireland, normalizes it, builds the indexed SQLite database, and cleans up temporary files in ~1–3 seconds (all downloads run in parallel).
+> - **If the database was built by an older version of the skill**: `ensure_data.py` sees the schema version in `_build_info` is out of date and rebuilds it automatically.
+> - **If SIMI is offline** (it takes `stats.simi.ie` down while loading each month's figures, usually on the 1st): the rebuild still refreshes CSO and keeps the SIMI tables from the previous database, with a warning.
 > - **To update to the latest figures**: Pass `--update` to any pipeline or run `python3 scripts/ensure_data.py --update`.
 > - **Futureproof schemas**: SIMI and CSO tables provide normalized, time-invariant columns (`year_latest`, `units_latest`, `market_share_pct_latest`, `change_pct_latest`, `year_prev`, `units_prev`) and dynamic views (`v_county_ev_ranking_latest`), ensuring queries never break across new reporting years.
 
@@ -44,11 +46,11 @@ flowchart TD
     subgraph AutoBuild ["Live API Ingestion (10s Auto-Build)"]
         P_SIMI["pull_simi.py<br/>(Laravel Inertia Deferred Props)"]
         P_CSO["pull_cso.py<br/>(CSO PxStat REST API)"]
-        B_DB["build_database.py<br/>(WAL mode, indexing, analytical views)"]
+        B_DB["build_database.py<br/>(atomic swap, indexing, analytical views)"]
     end
 
     subgraph Analytics ["Analytics Engine (data/irish_car_sales.db)"]
-        DB["16 Base Normalized Tables<br/>+ 4 Analytical Dynamic Views"]
+        DB["18 Base Normalized Tables<br/>+ 5 Analytical Dynamic Views"]
     end
 
     subgraph Execution ["Downstream Execution"]
@@ -82,7 +84,7 @@ python3 scripts/ensure_data.py
 # Force refresh from live SIMI and CSO APIs
 python3 scripts/ensure_data.py --update
 
-# Verify database integrity only
+# Verify database integrity and schema version only (exit code 1 if a rebuild is needed)
 python3 scripts/ensure_data.py --verify-only
 ```
 
@@ -110,7 +112,7 @@ python3 scripts/query_db.py "SELECT transmission, units_latest, market_share_pct
 
 ## 3. Database Schema & Tables Reference
 
-The database `data/irish_car_sales.db` (SQLite 3, WAL mode) organizes 16 base tables and 4 analytical views:
+The database `data/irish_car_sales.db` (SQLite 3, WAL mode) organizes 18 base tables (including `_build_info`, which records the schema version, build time and latest period of each source) and 5 analytical views. `query_db.py` uses only the standard library, so each query returns in about 30 ms:
 
 ### 3.1 Curated Analytical Views
 | View Name | Primary Source | Timeframe | Description & Invariant Columns |
@@ -119,6 +121,7 @@ The database `data/irish_car_sales.db` (SQLite 3, WAL mode) organizes 16 base ta
 | `v_ev_vs_diesel_crossover`| CSO `TEM12` | 2015 – Present | Monthly time series of Electric vs Diesel units and `ev_to_diesel_ratio`. Captures the monthly crossover point. |
 | `v_county_ev_ranking_latest`| CSO `TEM27` | Dynamic Latest Year | Dynamically resolves the latest reporting year in the database. Returns `licensing_authority`, `year`, `ev_units`, `total_units`, `ev_penetration_pct`, `share_of_national_ev_pct`. |
 | `v_model_historical_trajectory`| CSO `TEM20` | 2014 – Present | Multi-year model-level sales volumes for 330+ models (e.g., Volkswagen ID.4, Tesla Model 3/Y, Hyundai Tucson). |
+| `v_make_annual` | CSO `TEM20` | 2014 – Present | Annual units and market share per make: `year`, `make`, `units`, `market_units`, `market_share_pct`, `months_reported` (< 12 means a partial year). Use this for any brand history question. |
 
 ### 3.2 Time-Invariant SIMI Base Tables
 Every SIMI table includes both dynamic annual columns (`units_YYYY`) and standardized invariant columns:
@@ -148,7 +151,8 @@ Every SIMI table includes both dynamic annual columns (`units_YYYY`) and standar
 ### 3.3 CSO Base Tables
 * `cso_taxation_class_monthly` (`TEM01`): 1996 – Present (~5,000+ rows). Columns: `month_code`, `date_val`, `year`, `month_num`, `taxation_class`, `units`. Tracks new vs secondhand UK imports.
 * `cso_fuel_monthly` (`TEM12`): 2015 – Present (~16,800+ rows). Columns: `month_code`, `date_val`, `year`, `month_num`, `vehicle_class`, `fuel_type`, `units`.
-* `cso_make_model_monthly` (`TEM20`): 2014 – Present (~100,000+ rows). Columns: `month_code`, `date_val`, `year`, `month_num`, `make`, `model`, `full_name`, `units`.
+* `cso_make_model_monthly` (`TEM20`): 2014 – Present (~50,000 rows, one per model per month). Columns: `month_code`, `date_val`, `year`, `month_num`, `make`, `model`, `full_name`, `model_code`, `units`, `rank`. `units` is sales; `rank` is that model's position that month. `SUM(units)` over any make or the whole table is safe: the national total is *not* in this table, and lower-volume models are pooled under `make = 'OTHER'`.
+* `cso_new_private_cars_monthly` (`TEM20` "All models"): the national new private car total per month. Columns: `month_code`, `date_val`, `year`, `month_num`, `units`. Use it as the denominator for market share.
 * `cso_county_fuel_monthly` (`TEM27`): 2021 – Present (~44,000+ rows). Columns: `month_code`, `date_val`, `year`, `month_num`, `reg_type`, `licensing_authority`, `fuel_type`, `units`.
 
 ---
