@@ -1,0 +1,2523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Irish Car Sales Analysis | SQL Studio</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%9A%97%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            /* Studio theme tokens (dark default). Teal accent matches the car logo. */
+            --ui-header-bg: #161b1e;
+            --ui-header-border: #2c3539;
+            --ui-surface: #1a2023;
+            --ui-surface-elevated: #222a2e;
+            --ui-surface-input: #121719;
+            --ui-bg: #0f1416;
+            --ui-border: #2c3539;
+            --ui-border-subtle: #232b2f;
+
+            --ui-text-primary: #e6eef0;
+            --ui-text-secondary: #95a5ab;
+            --ui-text-disabled: #5d6b70;
+
+            --accent: #0d9488;
+            --accent-hover: #0f766e;
+            --accent-light: #5eead4;
+            --accent-subtle: rgba(45, 212, 191, 0.12);
+            --accent-border: rgba(45, 212, 191, 0.4);
+            --ok: #4ade80;
+            --ok-subtle: rgba(74, 222, 128, 0.12);
+            --ok-border: rgba(74, 222, 128, 0.3);
+            --warn: #f59e0b;
+            --warn-subtle: rgba(245, 158, 11, 0.12);
+            --danger: #f87171;
+            --danger-subtle: rgba(248, 113, 113, 0.12);
+
+            --gutter-bg: #141a1c;
+            --gutter-text: #5d6b70;
+            --grid-header-bg: #222a2e;
+            --grid-row-alt: #151b1d;
+            --grid-row-hover: rgba(45, 212, 191, 0.07);
+            --grid-border: #2c3539;
+
+            --font-display: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+        }
+
+        [data-theme="light"] {
+            --ui-header-bg: #ffffff;
+            --ui-header-border: #d5dfe1;
+            --ui-surface: #ffffff;
+            --ui-surface-elevated: #eef3f4;
+            --ui-surface-input: #f6f9f9;
+            --ui-bg: #f4f7f7;
+            --ui-border: #d5dfe1;
+            --ui-border-subtle: #e4ecee;
+
+            --ui-text-primary: #172225;
+            --ui-text-secondary: #56676c;
+            --ui-text-disabled: #87969a;
+
+            --accent: #0f766e;
+            --accent-hover: #115e59;
+            --accent-light: #0f766e;
+            --accent-subtle: rgba(15, 118, 110, 0.08);
+            --accent-border: rgba(15, 118, 110, 0.4);
+            --ok: #15803d;
+            --ok-subtle: rgba(21, 128, 61, 0.08);
+            --ok-border: rgba(21, 128, 61, 0.3);
+            --warn: #b45309;
+            --warn-subtle: rgba(180, 83, 9, 0.1);
+            --danger: #dc2626;
+            --danger-subtle: rgba(220, 38, 38, 0.08);
+
+            --gutter-bg: #f4f7f7;
+            --gutter-text: #87969a;
+            --grid-header-bg: #eef3f4;
+            --grid-row-alt: #f8fafa;
+            --grid-row-hover: rgba(15, 118, 110, 0.06);
+            --grid-border: #dfe7e8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* CRITICAL: Never scroll entire page */
+            background-color: var(--ui-bg);
+            color: var(--ui-text-primary);
+            font-family: var(--font-body);
+            font-size: 13px;
+            line-height: 1.4;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top bar */
+        .app-header {
+            height: 48px;
+            background: var(--ui-header-bg);
+            border-bottom: 1px solid var(--ui-header-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .app-menu-icon {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 3px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+        }
+        .app-menu-icon:hover {
+            background: var(--ui-surface-elevated);
+        }
+        .app-menu-icon span {
+            width: 16px;
+            height: 2px;
+            background: var(--ui-text-secondary);
+        }
+
+        .app-logo-lockup {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .app-cloud-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .app-brand-name {
+            font-family: var(--font-display);
+            font-weight: 500;
+            font-size: 16px;
+            color: var(--ui-text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .studio-badge {
+            font-size: 13px;
+            color: var(--accent-light);
+            font-weight: 500;
+        }
+
+        /* Project Selector */
+        .project-picker {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--ui-surface-elevated);
+            border: 1px solid var(--ui-border);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ui-text-primary);
+            cursor: default;
+        }
+        .project-id-sub {
+            color: var(--ui-text-secondary);
+            font-size: 11px;
+        }
+
+        /* Search Bar */
+        .header-search {
+            flex: 1;
+            max-width: 520px;
+            margin: 0 20px;
+            position: relative;
+        }
+        .search-box-input {
+            width: 100%;
+            background: var(--ui-surface-input);
+            border: 1px solid var(--ui-border);
+            border-radius: 8px;
+            padding: 6px 12px 6px 34px;
+            color: var(--ui-text-primary);
+            font-size: 13px;
+            outline: none;
+            transition: all 0.15s ease;
+        }
+        .search-box-input:focus {
+            border-color: var(--accent);
+            background: var(--ui-surface);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+        .search-icon-pos {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: var(--ui-text-secondary);
+        }
+
+        /* Header Right Controls */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-action-btn {
+            background: transparent;
+            border: 1px solid var(--ui-border);
+            color: var(--ui-text-secondary);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .header-action-btn:hover {
+            background: var(--ui-surface-elevated);
+            color: var(--ui-text-primary);
+        }
+
+        .engine-status-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background: var(--ok-subtle);
+            color: var(--ok);
+            font-weight: 500;
+            border: 1px solid var(--ok-border);
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--ok);
+        }
+
+        /* Main Workspace Container (Split into Explorer + Center Pane) */
+        .app-workspace {
+            display: flex;
+            height: calc(100vh - 48px);
+            width: 100vw;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Explorer sidebar */
+        .studio-explorer {
+            width: 290px;
+            min-width: 200px;
+            max-width: 450px;
+            background: var(--ui-surface);
+            border-right: 1px solid var(--ui-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow: hidden;
+            transition: width 0.2s ease, transform 0.2s ease;
+            position: relative;
+            z-index: 20;
+        }
+        .studio-explorer.collapsed {
+            width: 0 !important;
+            min-width: 0 !important;
+            border-right: none;
+        }
+
+        .explorer-header {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--ui-border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .explorer-title {
+            font-family: var(--font-display);
+            font-weight: 500;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ui-text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .explorer-search {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--ui-border-subtle);
+        }
+        .explorer-search-input {
+            width: 100%;
+            background: var(--ui-surface-input);
+            border: 1px solid var(--ui-border);
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 12px;
+            color: var(--ui-text-primary);
+            outline: none;
+        }
+        .explorer-search-input:focus {
+            border-color: var(--accent);
+        }
+
+        .explorer-tree {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px 0;
+        }
+
+        .tree-node-dataset {
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 500;
+            font-size: 12px;
+            color: var(--ui-text-primary);
+        }
+        .tree-node-dataset:hover {
+            background: var(--ui-surface-elevated);
+        }
+        .node-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .arrow-icon {
+            font-size: 10px;
+            color: var(--ui-text-secondary);
+            transition: transform 0.15s ease;
+            width: 12px;
+            text-align: center;
+        }
+        .arrow-icon.open {
+            transform: rotate(90deg);
+        }
+
+        .dataset-children {
+            display: none;
+            padding-left: 10px;
+        }
+        .dataset-children.open {
+            display: block;
+        }
+
+        .table-node {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 12px 5px 22px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            color: var(--ui-text-secondary);
+            border-left: 2px solid transparent;
+        }
+        .table-node:hover {
+            background: var(--accent-subtle);
+            color: var(--ui-text-primary);
+            border-left-color: var(--accent);
+        }
+        .table-node.active {
+            background: var(--accent-subtle);
+            color: var(--accent-light);
+            border-left-color: var(--accent);
+        }
+        .tbl-tag {
+            font-size: 9.5px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .tag-view {
+            background: rgba(139, 92, 246, 0.18);
+            color: #a78bfa;
+        }
+        .tag-table {
+            background: var(--accent-subtle);
+            color: var(--accent-light);
+        }
+
+        /* Column details expanded inside tree */
+        .table-columns-tree {
+            display: none;
+            padding: 4px 10px 6px 36px;
+            background: var(--ui-surface-input);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            border-top: 1px dashed var(--ui-border-subtle);
+            border-bottom: 1px dashed var(--ui-border-subtle);
+        }
+        .table-columns-tree.open {
+            display: block;
+        }
+        .tree-col-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+            color: var(--ui-text-secondary);
+            cursor: pointer;
+        }
+        .tree-col-row:hover {
+            color: var(--accent-light);
+        }
+        .tree-col-type {
+            font-size: 9px;
+            color: var(--ui-text-disabled);
+        }
+
+        /* Center Main Stage: Tab bar, Action bar, Editor & Results */
+        .main-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            background: var(--ui-bg);
+            position: relative;
+        }
+
+        /* Top Query Tabs Bar */
+        .studio-tab-bar {
+            height: 38px;
+            background: var(--ui-surface);
+            border-bottom: 1px solid var(--ui-border);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            flex-shrink: 0;
+            overflow-x: auto;
+        }
+
+        .studio-tab {
+            height: 32px;
+            padding: 0 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ui-text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .studio-tab:hover {
+            color: var(--ui-text-primary);
+            background: var(--ui-surface-elevated);
+        }
+        .studio-tab.active {
+            color: var(--accent-light);
+            border-bottom-color: var(--accent);
+            background: var(--ui-surface-elevated);
+        }
+        .tab-close {
+            font-size: 12px;
+            color: var(--ui-text-disabled);
+            border-radius: 50%;
+            padding: 2px 4px;
+        }
+        .tab-close:hover {
+            background: var(--ui-border);
+            color: var(--ui-text-primary);
+        }
+
+        .studio-tab-list {
+            display: flex;
+            min-width: 0;
+            overflow-x: auto;
+        }
+
+        .btn-new-tab {
+            background: transparent;
+            border: none;
+            color: var(--ui-text-secondary);
+            padding: 6px 10px;
+            font-size: 15px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .btn-new-tab:hover {
+            background: var(--ui-surface-elevated);
+            color: var(--ui-text-primary);
+        }
+
+        /* Query toolbar (Run, Format, etc.) */
+        .studio-action-toolbar {
+            height: 44px;
+            background: var(--ui-surface);
+            border-bottom: 1px solid var(--ui-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+            gap: 12px;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Run button */
+        .btn-run {
+            background: var(--accent);
+            color: #ffffff;
+            border: none;
+            border-radius: 18px;
+            height: 32px;
+            padding: 0 16px;
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            transition: all 0.15s ease;
+        }
+        .btn-run:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 2px 6px var(--accent-border);
+        }
+        .btn-run:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .shortcut-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: var(--font-mono);
+            font-weight: 400;
+        }
+
+        .toolbar-btn {
+            background: transparent;
+            border: 1px solid var(--ui-border);
+            color: var(--ui-text-primary);
+            height: 30px;
+            padding: 0 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .toolbar-btn:hover {
+            background: var(--ui-surface-elevated);
+        }
+
+        .select-limit {
+            background: var(--ui-surface-input);
+            border: 1px solid var(--ui-border);
+            color: var(--ui-text-secondary);
+            height: 30px;
+            padding: 0 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Query status message */
+        .query-validator-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--ok);
+        }
+        .validator-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--ok-subtle);
+            color: var(--ok);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* SPLIT VIEW CONTAINER: EDITOR (TOP) + RESULTS (BOTTOM) IN ONE VIEWPORT */
+        .split-workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: calc(100% - 82px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Top Panel: Query Editor */
+        .editor-pane {
+            height: 230px; /* Default height */
+            min-height: 110px;
+            max-height: 80%;
+            background: var(--ui-surface);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .editor-body {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .editor-gutter {
+            width: 48px;
+            background: var(--gutter-bg);
+            border-right: 1px solid var(--ui-border-subtle);
+            padding: 12px 8px 12px 0;
+            text-align: right;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.55;
+            color: var(--gutter-text);
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .sql-textarea {
+            flex: 1;
+            background: var(--ui-surface);
+            color: var(--ui-text-primary);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            line-height: 1.55;
+            padding: 12px 16px;
+            border: none;
+            outline: none;
+            resize: none;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+            tab-size: 2;
+        }
+
+        /* Resizer Bar between Editor and Results */
+        .split-resizer {
+            height: 7px;
+            background: var(--ui-border-subtle);
+            cursor: row-resize;
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease;
+            flex-shrink: 0;
+        }
+        .split-resizer:hover, .split-resizer.dragging {
+            background: var(--accent);
+        }
+        .resizer-handle {
+            width: 36px;
+            height: 3px;
+            border-radius: 2px;
+            background: var(--ui-text-disabled);
+        }
+        .split-resizer:hover .resizer-handle {
+            background: #ffffff;
+        }
+
+        /* Quick Layout Preset Buttons on Resizer */
+        .resizer-controls {
+            position: absolute;
+            right: 16px;
+            top: -10px;
+            display: flex;
+            gap: 4px;
+            background: var(--ui-surface-elevated);
+            border: 1px solid var(--ui-border);
+            border-radius: 4px;
+            padding: 1px;
+            z-index: 15;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        }
+        .resizer-btn {
+            background: transparent;
+            border: none;
+            color: var(--ui-text-secondary);
+            font-size: 10px;
+            padding: 2px 6px;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+        .resizer-btn:hover {
+            background: var(--ui-border);
+            color: var(--ui-text-primary);
+        }
+
+        /* Bottom Panel: Query Results (Never scrolls the window) */
+        .results-pane {
+            flex: 1;
+            min-height: 140px;
+            background: var(--ui-bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Results Tab Header */
+        .results-tab-header {
+            height: 38px;
+            background: var(--ui-surface);
+            border-bottom: 1px solid var(--ui-border);
+            border-top: 1px solid var(--ui-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            flex-shrink: 0;
+        }
+
+        .results-tabs-left {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .res-tab {
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ui-text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+        }
+        .res-tab:hover {
+            color: var(--ui-text-primary);
+        }
+        .res-tab.active {
+            color: var(--accent-light);
+            border-bottom-color: var(--accent);
+        }
+        .res-count-badge {
+            background: var(--ui-surface-elevated);
+            color: var(--ui-text-secondary);
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .results-tools-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .res-filter-input {
+            background: var(--ui-surface-input);
+            border: 1px solid var(--ui-border);
+            color: var(--ui-text-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11.5px;
+            outline: none;
+            width: 140px;
+        }
+        .res-filter-input:focus {
+            border-color: var(--accent);
+            width: 200px;
+            transition: width 0.2s ease;
+        }
+
+        /* Save results menu */
+        .btn-save-results {
+            background: var(--ui-surface-elevated);
+            border: 1px solid var(--ui-border);
+            color: var(--ui-text-primary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11.5px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-save-results:hover {
+            background: var(--ui-border);
+        }
+
+        .results-pagination-info {
+            font-size: 11px;
+            color: var(--ui-text-secondary);
+            white-space: nowrap;
+        }
+
+        /* Results Content Container */
+        .results-container {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            background: var(--ui-bg);
+        }
+
+        /* Results grid */
+        .studio-data-grid {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 12px;
+            font-family: var(--font-body);
+            text-align: left;
+        }
+
+        .studio-data-grid th {
+            position: sticky;
+            top: 0;
+            background: var(--grid-header-bg);
+            color: var(--ui-text-primary);
+            font-weight: 500;
+            padding: 8px 12px;
+            border-bottom: 2px solid var(--ui-border);
+            border-right: 1px solid var(--grid-border);
+            z-index: 5;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .studio-data-grid th:hover {
+            background: var(--ui-surface-elevated);
+            color: var(--accent-light);
+        }
+
+        .col-header-box {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .col-name-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+        .col-type-sub {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--ui-text-disabled);
+            font-weight: 400;
+            text-transform: uppercase;
+        }
+
+        .studio-data-grid td {
+            padding: 6px 12px;
+            border-bottom: 1px solid var(--grid-border);
+            border-right: 1px solid var(--ui-border-subtle);
+            white-space: nowrap;
+            color: var(--ui-text-primary);
+        }
+
+        .studio-data-grid tr:nth-child(even) td {
+            background: var(--grid-row-alt);
+        }
+        .studio-data-grid tr:hover td {
+            background: var(--grid-row-hover);
+        }
+
+        /* Row Index Column (Row 1, 2, 3...) */
+        td.row-idx-cell, th.row-idx-cell {
+            width: 44px;
+            min-width: 44px;
+            text-align: right;
+            padding-right: 10px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--ui-text-disabled);
+            background: var(--gutter-bg) !important;
+            border-right: 1px solid var(--ui-border);
+            position: sticky;
+            left: 0;
+            z-index: 4;
+        }
+        th.row-idx-cell {
+            z-index: 6;
+            top: 0;
+        }
+
+        .val-num {
+            font-family: var(--font-mono);
+            color: var(--accent-light);
+            text-align: right;
+        }
+        .val-null {
+            color: var(--danger);
+            font-style: italic;
+            opacity: 0.8;
+            font-size: 11px;
+        }
+
+        /* Empty State */
+        .empty-results-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 40px;
+            text-align: center;
+            color: var(--ui-text-secondary);
+        }
+        .empty-icon-cloud {
+            font-size: 40px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        .empty-results-state h3 {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--ui-text-primary);
+            margin-bottom: 6px;
+        }
+
+        /* Execution Details Tab View */
+        .exec-details-view {
+            display: none;
+            padding: 20px 24px;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .detail-card {
+            background: var(--ui-surface);
+            border: 1px solid var(--ui-border);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .detail-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ui-text-secondary);
+            margin-bottom: 4px;
+        }
+        .detail-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--ui-text-primary);
+            font-family: var(--font-mono);
+        }
+
+        /* JSON View Tab */
+        .json-view-container {
+            display: none;
+            height: 100%;
+            overflow: auto;
+            padding: 16px;
+            background: var(--ui-surface-input);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--accent-light);
+            white-space: pre;
+        }
+
+        /* Chart View Tab */
+        .chart-view-container {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+            padding: 16px;
+            gap: 12px;
+        }
+        .chart-bar-tools {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+        }
+        .chart-render-box {
+            flex: 1;
+            position: relative;
+            background: var(--ui-surface);
+            border: 1px solid var(--ui-border);
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        /* Error Notification Banner */
+        .error-notification {
+            display: none;
+            background: var(--danger-subtle);
+            border-left: 4px solid var(--danger);
+            padding: 10px 16px;
+            color: #f87171;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            margin: 8px 16px;
+            border-radius: 4px;
+        }
+
+        /* Slide-out Query Recipes Drawer (No permanent screen waste!) */
+        .recipes-drawer {
+            position: fixed;
+            top: 48px;
+            right: -480px;
+            width: 460px;
+            height: calc(100vh - 48px);
+            background: var(--ui-surface);
+            border-left: 1px solid var(--ui-border);
+            box-shadow: -4px 0 24px rgba(0,0,0,0.35);
+            z-index: 150;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .recipes-drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--ui-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .drawer-title {
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .drawer-close {
+            background: transparent;
+            border: none;
+            color: var(--ui-text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .drawer-nav-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--ui-border-subtle);
+            background: var(--ui-surface-input);
+        }
+        .filter-chip {
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 11.5px;
+            font-weight: 500;
+            background: var(--ui-surface);
+            border: 1px solid var(--ui-border);
+            color: var(--ui-text-secondary);
+            cursor: pointer;
+        }
+        .filter-chip.active {
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+        }
+
+        .drawer-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 16px;
+        }
+
+        .recipe-card {
+            background: var(--ui-surface-input);
+            border: 1px solid var(--ui-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            transition: all 0.15s ease;
+        }
+        .recipe-card:hover {
+            border-color: var(--accent-light);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .recipe-title {
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--ui-text-primary);
+            margin-bottom: 4px;
+        }
+        .recipe-desc {
+            font-size: 11.5px;
+            color: var(--ui-text-secondary);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .recipe-code-box {
+            background: var(--ui-surface);
+            border: 1px solid var(--ui-border-subtle);
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--accent-light);
+            white-space: pre-wrap;
+            max-height: 70px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .recipe-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .recipe-target-tag {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: var(--ui-text-disabled);
+        }
+        .recipe-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Toast notification */
+        .studio-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #172225;
+            color: #ffffff;
+            border: 1px solid #2c3539;
+            border-radius: 20px;
+            padding: 8px 18px;
+            font-size: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            z-index: 9999;
+            display: none;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <!-- Top bar -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="app-menu-icon" id="btn-toggle-explorer" title="Toggle Explorer Sidebar">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <a href="#" class="app-logo-lockup" onclick="location.reload()" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 9px;">
+                <div style="width: 26px; height: 26px; background: linear-gradient(135deg, #10B981, #06B6D4); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);">
+                    🚗
+                </div>
+                <span class="app-brand-name">Irish Car Sales Analysis <span class="studio-badge">SQL Studio</span></span>
+            </a>
+
+            <!-- Project Selector Dropdown -->
+            <div class="project-picker" id="project-picker-btn" title="Database: data/irish_car_sales.db">
+                <span>📁 irish-car-sales-analytics</span>
+                <span class="project-id-sub">(WAL)</span>
+            </div>
+        </div>
+
+        <!-- Universal Resource Search -->
+        <div class="header-search">
+            <span class="search-icon-pos">🔍</span>
+            <input type="text" id="global-search-input" class="search-box-input" placeholder="Search tables, columns, or views across project (Press '/' to focus)...">
+        </div>
+
+        <div class="header-right">
+            <span class="engine-status-pill" id="engine-status-badge">
+                <span class="status-dot"></span>
+                <span id="engine-status-text">SQLite WAL Engine</span>
+            </span>
+
+            <button class="header-action-btn" id="btn-theme-toggle" title="Toggle light/dark theme">
+                <span id="theme-icon">☀️</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Workspace Root -->
+    <div class="app-workspace">
+
+        <!-- Explorer sidebar -->
+        <aside class="studio-explorer" id="studio-explorer">
+            <div class="explorer-header">
+                <div class="explorer-title">
+                    <span>Explorer</span>
+                </div>
+                <div style="display: flex; gap: 4px;">
+                    <button class="header-action-btn" style="padding: 2px 6px;" id="btn-open-recipes-tree" title="Open Pre-built Query Recipes">⚡ Recipes</button>
+                    <button class="header-action-btn" style="padding: 2px 6px;" id="btn-collapse-sidebar" title="Hide Explorer">◀</button>
+                </div>
+            </div>
+
+            <div class="explorer-search">
+                <input type="text" id="tree-filter-input" class="explorer-search-input" placeholder="Type to filter tables/views...">
+            </div>
+
+            <div class="explorer-tree" id="explorer-tree-root">
+                <!-- Dynamically populated from API or fallback -->
+            </div>
+        </aside>
+
+        <!-- Center Main Stage: Tabs, Toolbar, Split Editor & Results -->
+        <main class="main-stage">
+            
+            <!-- Query Tab Strip -->
+            <div class="studio-tab-bar">
+                <div class="studio-tab-list" id="query-tabs"></div>
+                <button class="btn-new-tab" id="btn-add-tab" title="New query tab">+</button>
+            </div>
+
+            <!-- Query toolbar -->
+            <div class="studio-action-toolbar">
+                <div class="toolbar-left">
+                    <button class="btn-run" id="btn-run-query" title="Run Query (⌘+Enter / Ctrl+Enter)">
+                        <span>▶</span>
+                        <span>RUN</span>
+                        <span class="shortcut-badge">⌘+Enter</span>
+                    </button>
+
+                    <button class="toolbar-btn" id="btn-format-query" title="Format SQL Keywords">
+                        <span>✨</span> Format query
+                    </button>
+
+                    <button class="toolbar-btn" id="btn-clear-query" title="Clear Editor">
+                        <span>🧹</span> Clear
+                    </button>
+
+                    <button class="toolbar-btn" id="btn-open-recipes-drawer" title="Browse 20 Analytical Query Recipes" style="color: var(--accent-light); border-color: var(--accent-border);">
+                        <span>⚡</span> Query Recipes (20)
+                    </button>
+
+                    <select id="query-limit-select" class="select-limit" title="Query Row Limit">
+                        <option value="100">Limit 100</option>
+                        <option value="500">Limit 500</option>
+                        <option value="1000">Limit 1,000</option>
+                        <option value="5000" selected>Max 5,000</option>
+                    </select>
+                </div>
+
+                <div class="toolbar-right">
+                    <div class="query-validator-tag" id="query-validator-status">
+                        <div class="validator-icon">✓</div>
+                        <span id="validator-text">Valid SQL • Ready to run</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Split Workspace: Both Query & Results in ONE viewport -->
+            <div class="split-workspace" id="split-workspace">
+                
+                <!-- Query Editor Pane (Top) -->
+                <div class="editor-pane" id="editor-pane">
+                    <div class="editor-body">
+                        <div class="editor-gutter" id="editor-gutter">1</div>
+                        <textarea id="sql-editor" class="sql-textarea" spellcheck="false" placeholder="-- Enter SQL statement or pick from Query Recipes
+SELECT year, total_cars, electric, electric_share_pct, diesel, diesel_share_pct
+FROM v_powertrain_annual
+ORDER BY year DESC;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Resizer Bar between Editor and Results -->
+                <div class="split-resizer" id="split-resizer" title="Drag to resize Editor and Results">
+                    <div class="resizer-handle"></div>
+                    <div class="resizer-controls">
+                        <button class="resizer-btn" id="btn-preset-min-editor" title="Maximize Results">▼ Results</button>
+                        <button class="resizer-btn" id="btn-preset-balanced" title="Balanced 50/50">⇕ 50/50</button>
+                        <button class="resizer-btn" id="btn-preset-max-editor" title="Expand Editor">▲ Editor</button>
+                    </div>
+                </div>
+
+                <!-- Error Banner -->
+                <div id="error-notification" class="error-notification"></div>
+
+                <!-- Query Results Pane (Bottom, ALWAYS VISIBLE!) -->
+                <div class="results-pane" id="results-pane">
+                    
+                    <!-- Results Tab Bar -->
+                    <div class="results-tab-header">
+                        <div class="results-tabs-left">
+                            <div class="res-tab active" id="tab-res-grid" onclick="switchResultTab('grid')">
+                                <span>Query results</span>
+                                <span class="res-count-badge" id="badge-row-count">0 rows</span>
+                            </div>
+                            <div class="res-tab" id="tab-res-json" onclick="switchResultTab('json')">
+                                <span>JSON</span>
+                            </div>
+                            <div class="res-tab" id="tab-res-details" onclick="switchResultTab('details')">
+                                <span>Execution details</span>
+                            </div>
+                            <div class="res-tab" id="tab-res-chart" onclick="switchResultTab('chart')">
+                                <span>Visualization</span>
+                            </div>
+                        </div>
+
+                        <div class="results-tools-right">
+                            <input type="text" id="res-filter-box" class="res-filter-input" placeholder="Filter rows in results...">
+                            
+                            <button class="btn-save-results" id="btn-save-results-csv" title="Export as CSV">
+                                <span>⬇ CSV</span>
+                            </button>
+                            <button class="btn-save-results" id="btn-save-results-json" title="Export as JSON">
+                                <span>⬇ JSON</span>
+                            </button>
+                            <button class="btn-save-results" id="btn-copy-results" title="Copy to clipboard">
+                                <span>📋 Copy</span>
+                            </button>
+
+                            <span class="results-pagination-info" id="res-page-info">Showing 0 of 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Results View 1: Data Grid Table -->
+                    <div class="results-container" id="results-grid-view">
+                        <div class="empty-results-state" id="empty-state">
+                            <div class="empty-icon-cloud">⚡</div>
+                            <h3>Query results will appear here</h3>
+                            <p>Press <strong>RUN (⌘+Enter)</strong> to execute the SQL query above. Both the query and your results stay locked on screen together without scrolling.</p>
+                        </div>
+                        <table class="studio-data-grid" id="studio-data-grid" style="display: none;">
+                            <thead id="grid-thead"></thead>
+                            <tbody id="grid-tbody"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Results View 2: JSON -->
+                    <div class="json-view-container" id="results-json-view"></div>
+
+                    <!-- Results View 3: Execution Details -->
+                    <div class="exec-details-view" id="results-details-view">
+                        <div class="details-grid">
+                            <div class="detail-card">
+                                <div class="detail-label">Elapsed Time</div>
+                                <div class="detail-value" id="detail-elapsed">0.0 ms</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-label">Rows Returned</div>
+                                <div class="detail-value" id="detail-rows">0</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-label">Storage Engine</div>
+                                <div class="detail-value" style="color: var(--ok);">SQLite 3 WAL</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-label">Bytes Scanned</div>
+                                <div class="detail-value" style="color: var(--accent-light);" id="detail-bytes">16,800 B</div>
+                            </div>
+                        </div>
+
+                        <h4 style="font-family: var(--font-display); margin-bottom: 8px;">Database Metadata & Build Status</h4>
+                        <div style="background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; padding: 14px; font-family: var(--font-mono); font-size: 12px;" id="build-meta-details">
+                            Loading catalog metadata...
+                        </div>
+                    </div>
+
+                    <!-- Results View 4: Interactive Chart -->
+                    <div class="chart-view-container" id="results-chart-view">
+                        <div class="chart-bar-tools">
+                            <label>Chart Type:</label>
+                            <select id="chart-type-picker" class="select-limit">
+                                <option value="bar">Bar Chart</option>
+                                <option value="line">Line Trend</option>
+                                <option value="doughnut">Doughnut Share</option>
+                            </select>
+                            <span style="color: var(--ui-text-secondary); font-size: 11px;">Automatically maps first text/date dimension and numeric columns</span>
+                        </div>
+                        <div class="chart-render-box">
+                            <canvas id="studio-chart-canvas"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Slide-out Query Recipes Drawer -->
+    <aside class="recipes-drawer" id="recipes-drawer">
+        <div class="drawer-header">
+            <div class="drawer-title">
+                <span>⚡</span> Irish Car Sales Analytical Recipes
+            </div>
+            <button class="drawer-close" id="btn-close-recipes" title="Close Drawer">×</button>
+        </div>
+
+        <div class="drawer-nav-pills">
+            <button class="filter-chip active" data-cat="all">All (20)</button>
+            <button class="filter-chip" data-cat="ev">⚡ EV & Powertrains</button>
+            <button class="filter-chip" data-cat="geo">🗺️ County Adoption</button>
+            <button class="filter-chip" data-cat="brands">🏆 Makes & Models</button>
+            <button class="filter-chip" data-cat="specs">⚙️ Trans & Specs</button>
+            <button class="filter-chip" data-cat="commercial">🚚 Fleets & LCV</button>
+            <button class="filter-chip" data-cat="imports">🏛️ UK Imports</button>
+        </div>
+
+        <div class="drawer-body" id="recipes-list-container">
+            <!-- Dynamically populated -->
+        </div>
+    </aside>
+
+    <!-- Floating Toast Notification -->
+    <div class="studio-toast" id="studio-toast">Notification</div>
+
+    <!-- Application Script -->
+    <script>
+        // 20 Curated Production Recipes
+        const SAMPLE_QUERIES = [
+            {
+                id: "q1",
+                category: "ev",
+                title: "12-Year Powertrain Market Share Evolution",
+                target: "v_powertrain_annual",
+                desc: "Complete annual volume and market share transition across BEV, Diesel, Petrol, and Hybrids (2015–present).",
+                sql: `SELECT year, total_cars, electric, electric_share_pct, diesel, diesel_share_pct, petrol, petrol_share_pct, hybrid_hev, hybrid_share_pct, phev, phev_share_pct\nFROM v_powertrain_annual\nORDER BY year DESC;`
+            },
+            {
+                id: "q2",
+                category: "ev",
+                title: "Monthly EV vs Diesel Crossover Point",
+                target: "v_ev_vs_diesel_crossover",
+                desc: "Monthly volumes of pure electric cars vs diesel with ratio and dominance status.",
+                sql: `SELECT month_code, date_val, electric_units, diesel_units, ev_to_diesel_ratio,\n       CASE WHEN electric_units > diesel_units THEN 'EV Dominant' ELSE 'Diesel Dominant' END AS market_regime\nFROM v_ev_vs_diesel_crossover\nWHERE year >= 2024\nORDER BY month_code ASC;`
+            },
+            {
+                id: "q3",
+                category: "geo",
+                title: "County EV Penetration Index (Latest Reporting Year)",
+                target: "v_county_ev_ranking_latest",
+                desc: "Dynamically resolves the latest reporting year to rank all 26 licensing authorities by EV penetration rate.",
+                sql: `SELECT licensing_authority, year, ev_units, total_units, ev_penetration_pct, share_of_national_ev_pct\nFROM v_county_ev_ranking_latest\nORDER BY ev_penetration_pct DESC;`
+            },
+            {
+                id: "q4",
+                category: "geo",
+                title: "Commuter Belt vs Dublin City Adoption Rate",
+                target: "v_county_ev_ranking_latest",
+                desc: "Compares high-penetration commuter belt counties (Wicklow, Kildare, Meath) against Dublin.",
+                sql: `SELECT licensing_authority, ev_units, total_units, ev_penetration_pct\nFROM v_county_ev_ranking_latest\nWHERE licensing_authority IN ('Wicklow', 'Kildare', 'Meath', 'Dublin')\nORDER BY ev_penetration_pct DESC;`
+            },
+            {
+                id: "q5",
+                category: "brands",
+                title: "Top 10 Best-Selling Car Brands YTD",
+                target: "simi_passenger_makes",
+                desc: "Official brand rankings with time-invariant current units, national market share %, and YoY change.",
+                sql: `SELECT rank_latest, make, year_latest, units_latest, market_share_pct_latest, change_pct_latest, units_prev\nFROM simi_passenger_makes\nORDER BY units_latest DESC\nLIMIT 10;`
+            },
+            {
+                id: "q6",
+                category: "brands",
+                title: "Top 10 Best-Selling Car Models YTD",
+                target: "simi_passenger_models",
+                desc: "Current model-level leaderboard in Ireland (e.g. Yaris Cross, Tucson, Octavia, Sportage).",
+                sql: `SELECT rank_latest, make, model, units_latest, market_share_pct_latest, change_pct_latest\nFROM simi_passenger_models\nORDER BY units_latest DESC\nLIMIT 10;`
+            },
+            {
+                id: "q7",
+                category: "brands",
+                title: "Top 15 Pure EV Models Cumulative All-Time",
+                target: "v_model_historical_trajectory",
+                desc: "Aggregates multi-year sales of iconic pure electric vehicles in Ireland (2014–present). CSO groups the Ioniq 5 with the original Ioniq as 'Hyundai Ioniq'.",
+                sql: `SELECT full_name, make, model, SUM(annual_units) AS cumulative_units\nFROM v_model_historical_trajectory\nWHERE full_name IN (\n    'Volkswagen ID.4', 'Tesla Model 3', 'Tesla Model Y', 'Nissan Leaf',\n    'Skoda Enyaq', 'Volkswagen ID.3', 'Kia EV 6', 'Kia EV 3', 'Hyundai Ioniq',\n    'BYD Atto 3', 'BYD Seal', 'MG MG4', 'Volvo EX30', 'BMW i4', 'Renault Zoe'\n)\nGROUP BY full_name, make, model\nORDER BY cumulative_units DESC;`
+            },
+            {
+                id: "q8",
+                category: "brands",
+                title: "Annual Make Leaderboard Across History",
+                target: "v_make_annual",
+                desc: "Annual manufacturer volume and market share % for the latest year.",
+                sql: `SELECT year, make, units, market_units, market_share_pct\nFROM v_make_annual\nWHERE year = (SELECT MAX(year) FROM v_make_annual)\nORDER BY units DESC\nLIMIT 10;`
+            },
+            {
+                id: "q9",
+                category: "specs",
+                title: "Automatic vs Manual Transmission Shift",
+                target: "simi_passenger_transmissions",
+                desc: "Tracks the decisive shift to automatic gearboxes driven by electric traction motors and hybrids.",
+                sql: `SELECT transmission, units_latest, market_share_pct_latest, change_pct_latest, units_prev\nFROM simi_passenger_transmissions\nORDER BY units_latest DESC;`
+            },
+            {
+                id: "q10",
+                category: "specs",
+                title: "SUV vs Body Style Distribution",
+                target: "simi_passenger_body_types",
+                desc: "Evaluates the dominance of SUVs compared to traditional Hatchbacks, Saloons, and Estates.",
+                sql: `SELECT body_type, units_latest, market_share_pct_latest, change_pct_latest, units_prev\nFROM simi_passenger_body_types\nORDER BY units_latest DESC\nLIMIT 10;`
+            },
+            {
+                id: "q11",
+                category: "specs",
+                title: "Vehicle Exterior Colour Leaderboard",
+                target: "simi_passenger_colours",
+                desc: "Breakdown of consumer colour choices in new car registrations (Grey, Black, White, Blue, Red).",
+                sql: `SELECT colour, units_latest, market_share_pct_latest, change_pct_latest\nFROM simi_passenger_colours\nORDER BY units_latest DESC\nLIMIT 10;`
+            },
+            {
+                id: "q12",
+                category: "specs",
+                title: "Vehicle Market Segments Breakdown",
+                target: "simi_passenger_segments",
+                desc: "Sales volume by vehicle size segment (Small SUV, Medium SUV, B-Segment, etc.).",
+                sql: `SELECT segment, units_latest, market_share_pct_latest, change_pct_latest\nFROM simi_passenger_segments\nORDER BY units_latest DESC\nLIMIT 10;`
+            },
+            {
+                id: "q13",
+                category: "geo",
+                title: "Total County Volume Distribution (SIMI)",
+                target: "simi_passenger_counties",
+                desc: "Total passenger car registration counts by county from official SIMI Motorstats.",
+                sql: `SELECT county, units_latest, market_share_pct_latest, change_pct_latest\nFROM simi_passenger_counties\nORDER BY units_latest DESC\nLIMIT 10;`
+            },
+            {
+                id: "q14",
+                category: "ev",
+                title: "Engine & Fuel Powertrains (SIMI YTD)",
+                target: "simi_passenger_fuels",
+                desc: "Current YTD market breakdown across Electric, Petrol, Diesel, Hybrid, and PHEV.",
+                sql: `SELECT engine_type, units_latest, market_share_pct_latest, change_pct_latest\nFROM simi_passenger_fuels\nORDER BY units_latest DESC;`
+            },
+            {
+                id: "q15",
+                category: "commercial",
+                title: "Light Commercial Vehicle (LCV) Brands",
+                target: "simi_lcv_makes",
+                desc: "Commercial van brand registrations and market share in Ireland.",
+                sql: `SELECT rank_latest, make, units_latest, market_share_pct_latest, change_pct_latest\nFROM simi_lcv_makes\nORDER BY units_latest DESC\nLIMIT 10;`
+            },
+            {
+                id: "q16",
+                category: "commercial",
+                title: "Heavy Commercial Vehicles (HCV Trucks)",
+                target: "simi_hcv_makes",
+                desc: "Heavy truck registrations by manufacturer (Scania, Volvo, DAF, Mercedes-Benz).",
+                sql: `SELECT rank_latest, make, units_latest, market_share_pct_latest, change_pct_latest\nFROM simi_hcv_makes\nORDER BY units_latest DESC\nLIMIT 10;`
+            },
+            {
+                id: "q17",
+                category: "commercial",
+                title: "Buses & Coaches Registrations by Make",
+                target: "simi_bus_makes",
+                desc: "Public transport bus and coach brand volumes.",
+                sql: `SELECT rank_latest, make, units_latest, market_share_pct_latest, change_pct_latest\nFROM simi_bus_makes\nORDER BY units_latest DESC\nLIMIT 10;`
+            },
+            {
+                id: "q18",
+                category: "imports",
+                title: "New Private Cars vs Imported Secondhand Cars (CSO TEM01)",
+                target: "cso_taxation_class_monthly",
+                desc: "Analyzes the impact of Brexit on UK imported secondhand car volumes vs new domestic registrations.",
+                sql: `SELECT year,\n       SUM(CASE WHEN taxation_class = 'New Private Cars' THEN units ELSE 0 END) AS new_private_cars,\n       SUM(CASE WHEN taxation_class = 'Secondhand Private Cars' THEN units ELSE 0 END) AS imported_secondhand_cars\nFROM cso_taxation_class_monthly\nWHERE year >= 2018\nGROUP BY year\nORDER BY year DESC;`
+            },
+            {
+                id: "q19",
+                category: "geo",
+                title: "County New Car Fuel Splits (CSO TEM27)",
+                target: "cso_county_fuel_monthly",
+                desc: "Evaluates pure BEV adoption by licensing authority from the official CSO monthly cube.",
+                sql: `SELECT licensing_authority,\n       SUM(CASE WHEN fuel_type = 'Electric' THEN units ELSE 0 END) AS ev_units,\n       SUM(CASE WHEN fuel_type = 'All fuel types' THEN units ELSE 0 END) AS total_units,\n       ROUND(SUM(CASE WHEN fuel_type = 'Electric' THEN units ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN fuel_type = 'All fuel types' THEN units ELSE 0 END), 0), 2) AS ev_share_pct\nFROM cso_county_fuel_monthly\nWHERE year = (SELECT MAX(year) FROM cso_county_fuel_monthly) AND reg_type = 'New Private Cars'\nGROUP BY licensing_authority\nORDER BY ev_share_pct DESC\nLIMIT 10;`
+            },
+            {
+                id: "q20",
+                category: "brands",
+                title: "Top 10 New Models This Year (CSO TEM20)",
+                target: "cso_make_model_monthly",
+                desc: "CSO model-level registrations for the latest year in the database.",
+                sql: `SELECT year, make, model, SUM(units) AS total_units\nFROM cso_make_model_monthly\nWHERE year = (SELECT MAX(year) FROM cso_make_model_monthly) AND make <> 'OTHER'\nGROUP BY year, make, model\nORDER BY total_units DESC\nLIMIT 10;`
+            }
+        ];
+
+        // Global State
+        let currentResults = { columns: [], rows: [] };
+        let currentSort = { column: null, ascending: true };
+        let activeChart = null;
+        let activeResultTab = 'grid';
+
+        // Initialize Studio
+        document.addEventListener('DOMContentLoaded', () => {
+            initEditor();
+            initSplitResizer();
+            renderRecipes('all');
+            setupRecipeFilters();
+            fetchSchema();
+            checkServerStatus();
+
+            restoreTheme();
+
+            // Query tabs, starting with the first recipe
+            const editor = document.getElementById('sql-editor');
+            initQueryTabs(editor.value.trim() ? editor.value : SAMPLE_QUERIES[0].sql);
+
+            // Bind Actions
+            document.getElementById('btn-run-query').addEventListener('click', runCurrentQuery);
+            document.getElementById('btn-format-query').addEventListener('click', formatSQL);
+            document.getElementById('btn-clear-query').addEventListener('click', () => {
+                editor.value = '';
+                updateLineNumbers();
+                editor.focus();
+            });
+
+            // Bind Exports
+            document.getElementById('btn-save-results-csv').addEventListener('click', exportCSV);
+            document.getElementById('btn-save-results-json').addEventListener('click', exportJSON);
+            document.getElementById('btn-copy-results').addEventListener('click', copyResultsToClipboard);
+
+            // Bind Row Filter
+            document.getElementById('res-filter-box').addEventListener('input', (e) => {
+                filterTableRows(e.target.value.toLowerCase());
+            });
+
+            // Chart changes
+            document.getElementById('chart-type-picker').addEventListener('change', renderChart);
+
+            // Drawer Bindings
+            document.getElementById('btn-open-recipes-drawer').addEventListener('click', toggleRecipesDrawer);
+            document.getElementById('btn-open-recipes-tree').addEventListener('click', toggleRecipesDrawer);
+            document.getElementById('btn-close-recipes').addEventListener('click', toggleRecipesDrawer);
+
+            // Theme Toggle
+            document.getElementById('btn-theme-toggle').addEventListener('click', toggleTheme);
+
+            // Sidebar Toggle
+            document.getElementById('btn-toggle-explorer').addEventListener('click', toggleSidebar);
+            document.getElementById('btn-collapse-sidebar').addEventListener('click', toggleSidebar);
+
+            // Global search keyboard shortcut '/'
+            window.addEventListener('keydown', (e) => {
+                if (e.key === '/' && document.activeElement !== editor && document.activeElement.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    document.getElementById('global-search-input').focus();
+                }
+            });
+        });
+
+        // Editor & Line Numbers
+        function initEditor() {
+            const textarea = document.getElementById('sql-editor');
+            const gutter = document.getElementById('editor-gutter');
+
+            textarea.addEventListener('input', updateLineNumbers);
+            textarea.addEventListener('scroll', () => {
+                gutter.scrollTop = textarea.scrollTop;
+            });
+
+            textarea.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    runCurrentQuery();
+                } else if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    textarea.value = textarea.value.substring(0, start) + '  ' + textarea.value.substring(end);
+                    textarea.selectionStart = textarea.selectionEnd = start + 2;
+                    updateLineNumbers();
+                }
+            });
+            updateLineNumbers();
+        }
+
+        function updateLineNumbers() {
+            const textarea = document.getElementById('sql-editor');
+            const gutter = document.getElementById('editor-gutter');
+            const count = textarea.value.split('\n').length;
+            let nums = '';
+            for (let i = 1; i <= Math.max(count, 1); i++) {
+                nums += `${i}<br>`;
+            }
+            gutter.innerHTML = nums;
+        }
+
+        function formatSQL() {
+            const textarea = document.getElementById('sql-editor');
+            const keywords = ['SELECT', 'FROM', 'WHERE', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 
+                              'ON', 'GROUP BY', 'ORDER BY', 'LIMIT', 'DESC', 'ASC', 'CASE', 'WHEN', 
+                              'THEN', 'ELSE', 'END', 'AS', 'AND', 'OR', 'NOT', 'IN', 'LIKE', 'SUM', 
+                              'COUNT', 'AVG', 'ROUND', 'NULLIF', 'HAVING', 'DISTINCT', 'UNION ALL', 'WITH'];
+            
+            let val = textarea.value;
+            keywords.forEach(kw => {
+                const regex = new RegExp(`\\b${kw}\\b`, 'gi');
+                val = val.replace(regex, kw);
+            });
+            textarea.value = val;
+            updateLineNumbers();
+            showToast("SQL query formatted.");
+        }
+
+        // Draggable Split Resizer (Locking Query & Results on the SAME SCREEN)
+        function initSplitResizer() {
+            const resizer = document.getElementById('split-resizer');
+            const editorPane = document.getElementById('editor-pane');
+            const container = document.getElementById('split-workspace');
+            let isDragging = false;
+
+            resizer.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.resizer-controls')) return;
+                isDragging = true;
+                resizer.classList.add('dragging');
+                document.body.style.cursor = 'row-resize';
+                document.body.style.userSelect = 'none';
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const containerRect = container.getBoundingClientRect();
+                let newHeight = e.clientY - containerRect.top;
+                
+                // Constraints: keep editor between 100px and 70% of workspace
+                if (newHeight < 90) newHeight = 90;
+                if (newHeight > containerRect.height - 120) newHeight = containerRect.height - 120;
+                
+                editorPane.style.height = `${newHeight}px`;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    resizer.classList.remove('dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+
+            // Quick Presets
+            document.getElementById('btn-preset-min-editor').addEventListener('click', () => {
+                editorPane.style.height = '110px';
+            });
+            document.getElementById('btn-preset-balanced').addEventListener('click', () => {
+                const containerRect = container.getBoundingClientRect();
+                editorPane.style.height = `${containerRect.height * 0.4}px`;
+            });
+            document.getElementById('btn-preset-max-editor').addEventListener('click', () => {
+                const containerRect = container.getBoundingClientRect();
+                editorPane.style.height = `${containerRect.height * 0.65}px`;
+            });
+        }
+
+        // Query Execution
+        async function runCurrentQuery() {
+            const textarea = document.getElementById('sql-editor');
+            const query = textarea.value.trim();
+            const errorBox = document.getElementById('error-notification');
+            const runBtn = document.getElementById('btn-run-query');
+            const validatorStatus = document.getElementById('query-validator-status');
+            const validatorText = document.getElementById('validator-text');
+            const rowBadge = document.getElementById('badge-row-count');
+            const limitVal = parseInt(document.getElementById('query-limit-select').value, 10) || 5000;
+
+            if (!query) {
+                showError("Cannot execute empty query.");
+                return;
+            }
+
+            errorBox.style.display = 'none';
+            runBtn.disabled = true;
+            validatorStatus.style.color = "var(--accent-light)";
+            validatorText.textContent = "Query running...";
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query, max_rows: limitVal })
+                });
+
+                const data = await response.json();
+                runBtn.disabled = false;
+
+                if (!data.success) {
+                    showError(data.error || "Query failed to execute.");
+                    validatorStatus.style.color = "var(--danger)";
+                    validatorText.textContent = "Query execution error";
+                    return;
+                }
+
+                currentResults = { columns: data.columns, rows: data.rows };
+                
+                // Update query status
+                validatorStatus.style.color = "var(--ok)";
+                validatorText.textContent = `Valid • Returned ${data.row_count.toLocaleString()} rows in ${data.elapsed_ms} ms`;
+                rowBadge.textContent = `${data.row_count.toLocaleString()} rows`;
+                document.getElementById('res-page-info').textContent = `Showing 1 - ${data.row_count.toLocaleString()} of ${data.row_count.toLocaleString()}`;
+
+                // Update Execution Details View
+                document.getElementById('detail-elapsed').textContent = `${data.elapsed_ms} ms`;
+                document.getElementById('detail-rows').textContent = data.row_count.toLocaleString();
+                document.getElementById('detail-bytes').textContent = `${(data.row_count * (data.columns.length || 1) * 8).toLocaleString()} B`;
+
+                // Update JSON View
+                const records = data.rows.map(r => {
+                    const obj = {};
+                    data.columns.forEach((c, idx) => { obj[c] = r[idx]; });
+                    return obj;
+                });
+                document.getElementById('results-json-view').textContent = JSON.stringify(records, null, 2);
+
+                // Render Table
+                renderTable(data.columns, data.rows);
+
+                if (activeResultTab === 'chart') {
+                    renderChart();
+                }
+
+            } catch (err) {
+                runBtn.disabled = false;
+                showError(`Failed to connect to local SQL server: ${err.message}. Make sure 'python3 scripts/sql_studio.py' is running.`);
+                validatorStatus.style.color = "var(--warn)";
+                validatorText.textContent = "Offline / Connection Error";
+            }
+        }
+
+        function showError(msg) {
+            const banner = document.getElementById('error-notification');
+            banner.textContent = `Error: ${msg}`;
+            banner.style.display = 'block';
+        }
+
+        // Render results grid
+        function renderTable(columns, rows) {
+            const emptyState = document.getElementById('empty-state');
+            const table = document.getElementById('studio-data-grid');
+            const thead = document.getElementById('grid-thead');
+            const tbody = document.getElementById('grid-tbody');
+
+            if (!columns || columns.length === 0) {
+                emptyState.style.display = 'flex';
+                table.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            table.style.display = 'table';
+
+            // Detect column types for the header row
+            const colTypes = columns.map((col, idx) => {
+                if (rows.length === 0) return 'STRING';
+                const firstVal = rows[0][idx];
+                if (typeof firstVal === 'number') {
+                    return Number.isInteger(firstVal) ? 'INTEGER' : 'FLOAT';
+                } else if (typeof firstVal === 'boolean') {
+                    return 'BOOLEAN';
+                }
+                return 'STRING';
+            });
+
+            // Build sticky header
+            let thHtml = '<tr><th class="row-idx-cell">Row</th>';
+            columns.forEach((col, idx) => {
+                const sortIndicator = currentSort.column === idx ? (currentSort.ascending ? ' ▲' : ' ▼') : '';
+                thHtml += `
+                    <th onclick="sortTableByColumn(${idx})" title="Click to sort">
+                        <div class="col-header-box">
+                            <div class="col-name-label">
+                                <span>${escapeHtml(String(col))}</span>
+                                <span style="font-size: 10px; color: var(--ui-text-secondary);">${sortIndicator}</span>
+                            </div>
+                            <span class="col-type-sub">${colTypes[idx]}</span>
+                        </div>
+                    </th>
+                `;
+            });
+            thHtml += '</tr>';
+            thead.innerHTML = thHtml;
+
+            // Build rows
+            let trHtml = '';
+            rows.forEach((row, rIdx) => {
+                trHtml += `<tr><td class="row-idx-cell">${rIdx + 1}</td>`;
+                row.forEach((val, cIdx) => {
+                    if (val === null || val === undefined) {
+                        trHtml += `<td class="val-null">null</td>`;
+                    } else if (typeof val === 'number') {
+                        const fmt = Number.isInteger(val) ? val.toLocaleString() : val.toFixed(2);
+                        trHtml += `<td class="val-num">${fmt}</td>`;
+                    } else {
+                        trHtml += `<td>${escapeHtml(String(val))}</td>`;
+                    }
+                });
+                trHtml += '</tr>';
+            });
+            tbody.innerHTML = trHtml;
+        }
+
+        function sortTableByColumn(colIdx) {
+            if (currentSort.column === colIdx) {
+                currentSort.ascending = !currentSort.ascending;
+            } else {
+                currentSort.column = colIdx;
+                currentSort.ascending = true;
+            }
+
+            currentResults.rows.sort((a, b) => {
+                let vA = a[colIdx];
+                let vB = b[colIdx];
+
+                if (vA === null || vA === undefined) return 1;
+                if (vB === null || vB === undefined) return -1;
+
+                if (typeof vA === 'number' && typeof vB === 'number') {
+                    return currentSort.ascending ? vA - vB : vB - vA;
+                }
+                return currentSort.ascending 
+                    ? String(vA).localeCompare(String(vB)) 
+                    : String(vB).localeCompare(String(vA));
+            });
+
+            renderTable(currentResults.columns, currentResults.rows);
+        }
+
+        function filterTableRows(term) {
+            const tbody = document.getElementById('grid-tbody');
+            if (!tbody) return;
+            const trs = tbody.getElementsByTagName('tr');
+            let visibleCount = 0;
+            for (let i = 0; i < trs.length; i++) {
+                const text = trs[i].textContent.toLowerCase();
+                const matches = text.includes(term);
+                trs[i].style.display = matches ? '' : 'none';
+                if (matches) visibleCount++;
+            }
+            document.getElementById('res-page-info').textContent = `Filtered ${visibleCount} of ${currentResults.rows.length}`;
+        }
+
+        // Switch Results Tabs (Results, JSON, Details, Chart)
+        function switchResultTab(tab) {
+            activeResultTab = tab;
+            const tabs = ['grid', 'json', 'details', 'chart'];
+            tabs.forEach(t => {
+                const tabEl = document.getElementById(`tab-res-${t}`);
+                const viewEl = document.getElementById(`results-${t}-view`);
+                if (tabEl) tabEl.classList.toggle('active', t === tab);
+                if (viewEl) {
+                    if (t === 'chart') {
+                        viewEl.style.display = (t === tab) ? 'flex' : 'none';
+                    } else {
+                        viewEl.style.display = (t === tab) ? 'block' : 'none';
+                    }
+                }
+            });
+
+            if (tab === 'chart') {
+                renderChart();
+            }
+        }
+
+        // Chart Rendering
+        function renderChart() {
+            if (!currentResults.columns || currentResults.columns.length < 2 || currentResults.rows.length === 0) {
+                return;
+            }
+
+            const canvas = document.getElementById('studio-chart-canvas');
+            const ctx = canvas.getContext('2d');
+            const chartType = document.getElementById('chart-type-picker').value;
+
+            let labelColIdx = 0;
+            let numericCols = [];
+
+            currentResults.columns.forEach((col, idx) => {
+                const sample = currentResults.rows[0][idx];
+                if (typeof sample === 'number') {
+                    numericCols.push(idx);
+                } else if (numericCols.length === 0) {
+                    labelColIdx = idx;
+                }
+            });
+
+            if (numericCols.length === 0 && currentResults.columns.length > 1) {
+                numericCols = [1];
+            }
+
+            const labels = currentResults.rows.slice(0, 50).map(r => String(r[labelColIdx]));
+            const palette = ['#14b8a6', '#6366f1', '#f59e0b', '#ec4899', '#84cc16', '#0ea5e9'];
+
+            const datasets = numericCols.slice(0, 4).map((colIdx, idx) => {
+                const color = palette[idx % palette.length];
+                return {
+                    label: currentResults.columns[colIdx],
+                    data: currentResults.rows.slice(0, 50).map(r => r[colIdx]),
+                    backgroundColor: chartType === 'doughnut' ? palette : color + 'aa',
+                    borderColor: color,
+                    borderWidth: 1.5,
+                    borderRadius: 3
+                };
+            });
+
+            if (activeChart) {
+                activeChart.destroy();
+            }
+
+            activeChart = new Chart(ctx, {
+                type: chartType,
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#95a5ab', font: { family: 'IBM Plex Sans', size: 12 } } }
+                    },
+                    scales: chartType === 'doughnut' ? {} : {
+                        x: { ticks: { color: '#87969a' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                        y: { ticks: { color: '#87969a' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+                    }
+                }
+            });
+        }
+
+        // Schema Explorer & Tree Rendering
+        async function fetchSchema() {
+            try {
+                const res = await fetch('/api/schema', { method: 'GET' });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && json.schema) {
+                        renderExplorerTree(json.schema);
+                        renderBuildMetadata(json.schema);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('Using local fallback schema');
+            }
+            renderFallbackSchema();
+        }
+
+        function renderExplorerTree(schema) {
+            const root = document.getElementById('explorer-tree-root');
+            root.innerHTML = '';
+
+            const projectDiv = document.createElement('div');
+            projectDiv.innerHTML = `
+                <div class="tree-node-dataset" onclick="toggleDataset('proj-main')">
+                    <div class="node-left">
+                        <span class="arrow-icon open" id="arr-proj-main">▶</span>
+                        <span>📁 <strong>irish-vehicle-analytics</strong></span>
+                    </div>
+                    <span style="font-size: 10px; color: var(--ui-text-secondary);">${(schema.tables || []).length + (schema.views || []).length} objs</span>
+                </div>
+                <div class="dataset-children open" id="children-proj-main"></div>
+            `;
+            root.appendChild(projectDiv);
+
+            const childrenContainer = projectDiv.querySelector('#children-proj-main');
+
+            // Group tables into source folders
+            const datasets = [
+                {
+                    id: "views",
+                    name: "analytical_views",
+                    icon: "⭐",
+                    items: schema.views || []
+                },
+                {
+                    id: "simi",
+                    name: "simi_motorstats",
+                    icon: "📊",
+                    items: (schema.tables || []).filter(t => t.name.startsWith('simi_passenger_') || t.category === "SIMI Passenger")
+                },
+                {
+                    id: "comm",
+                    name: "simi_commercial",
+                    icon: "🚚",
+                    items: (schema.tables || []).filter(t => t.name.startsWith('simi_lcv_') || t.name.startsWith('simi_hcv_') || t.name.startsWith('simi_bus_'))
+                },
+                {
+                    id: "cso",
+                    name: "cso_ireland",
+                    icon: "🏛️",
+                    items: (schema.tables || []).filter(t => t.name.startsWith('cso_') || t.category === "CSO Historical Cubes")
+                }
+            ];
+
+            datasets.forEach(ds => {
+                if (ds.items.length === 0) return;
+                const dsDiv = document.createElement('div');
+                dsDiv.innerHTML = `
+                    <div class="tree-node-dataset" onclick="toggleDataset('ds-${ds.id}')" style="padding-left: 20px;">
+                        <div class="node-left">
+                            <span class="arrow-icon open" id="arr-ds-${ds.id}">▶</span>
+                            <span>📂 ${ds.name}</span>
+                        </div>
+                        <span class="tbl-tag tag-${ds.id === 'views' ? 'view' : 'table'}">${ds.items.length}</span>
+                    </div>
+                    <div class="dataset-children open" id="children-ds-${ds.id}" style="padding-left: 12px;"></div>
+                `;
+                childrenContainer.appendChild(dsDiv);
+
+                const tableContainer = dsDiv.querySelector(`#children-ds-${ds.id}`);
+                ds.items.forEach(tbl => {
+                    const tblNode = document.createElement('div');
+                    tblNode.className = 'table-item-node';
+                    const isView = tbl.type === 'VIEW';
+
+                    let colsHtml = '';
+                    (tbl.columns || []).forEach(col => {
+                        colsHtml += `
+                            <div class="tree-col-row" onclick="insertColumnName('${col.name}')" title="Click to insert into query">
+                                <span>${col.name}</span>
+                                <span class="tree-col-type">${col.type || 'STRING'}</span>
+                            </div>
+                        `;
+                    });
+
+                    tblNode.innerHTML = `
+                        <div class="table-node" onclick="toggleColumnsTree('${tbl.name}')" title="Click to inspect columns">
+                            <div class="node-left">
+                                <span style="font-size: 11px;">${isView ? '👁️' : '📄'}</span>
+                                <span>${tbl.name}</span>
+                            </div>
+                            <span style="font-size: 9px; opacity: 0.6;">${tbl.row_count ? Number(tbl.row_count).toLocaleString() : ''}</span>
+                        </div>
+                        <div class="table-columns-tree" id="cols-${tbl.name}">
+                            <div style="display: flex; gap: 6px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid var(--ui-border-subtle);">
+                                <a href="javascript:void(0)" onclick="quickSelectTable('${tbl.name}')" style="color: var(--accent-light); text-decoration: none; font-size: 10px;">▷ Query Table</a>
+                                <span style="color: var(--ui-text-disabled);">•</span>
+                                <a href="javascript:void(0)" onclick="copyText('${tbl.name}')" style="color: var(--ui-text-secondary); text-decoration: none; font-size: 10px;">Copy ID</a>
+                            </div>
+                            ${colsHtml}
+                        </div>
+                    `;
+                    tableContainer.appendChild(tblNode);
+                });
+            });
+
+            setupTreeSearch();
+        }
+
+        function renderFallbackSchema() {
+            const fallback = {
+                tables: [
+                    { name: 'simi_passenger_makes', type: 'TABLE', category: 'SIMI Passenger', row_count: 53, columns: [{name: 'make', type: 'STRING'}, {name: 'units_latest', type: 'INTEGER'}, {name: 'market_share_pct_latest', type: 'FLOAT'}] },
+                    { name: 'simi_passenger_models', type: 'TABLE', category: 'SIMI Passenger', row_count: 382, columns: [{name: 'make', type: 'STRING'}, {name: 'model', type: 'STRING'}, {name: 'rank_latest', type: 'INTEGER'}] },
+                    { name: 'cso_fuel_monthly', type: 'TABLE', category: 'CSO Historical Cubes', row_count: 16800, columns: [{name: 'year', type: 'INTEGER'}, {name: 'fuel_type', type: 'STRING'}, {name: 'units', type: 'INTEGER'}] },
+                    { name: 'cso_county_fuel_monthly', type: 'TABLE', category: 'CSO Historical Cubes', row_count: 44064, columns: [{name: 'year', type: 'INTEGER'}, {name: 'licensing_authority', type: 'STRING'}, {name: 'fuel_type', type: 'STRING'}, {name: 'units', type: 'INTEGER'}] }
+                ],
+                views: [
+                    { name: 'v_powertrain_annual', type: 'VIEW', category: 'Curated Analytical Views', row_count: 12, columns: [{name: 'year', type: 'INTEGER'}, {name: 'electric', type: 'INTEGER'}, {name: 'diesel', type: 'INTEGER'}] },
+                    { name: 'v_ev_vs_diesel_crossover', type: 'VIEW', category: 'Curated Analytical Views', row_count: 140, columns: [{name: 'month_code', type: 'INTEGER'}, {name: 'electric_units', type: 'INTEGER'}, {name: 'diesel_units', type: 'INTEGER'}] },
+                    { name: 'v_county_ev_ranking_latest', type: 'VIEW', category: 'Curated Analytical Views', row_count: 26, columns: [{name: 'licensing_authority', type: 'STRING'}, {name: 'ev_penetration_pct', type: 'FLOAT'}] }
+                ]
+            };
+            renderExplorerTree(fallback);
+        }
+
+        function renderBuildMetadata(schema) {
+            const metaBox = document.getElementById('build-meta-details');
+            metaBox.innerHTML = `
+                <div><strong>Database Path:</strong> ${schema.database_path || 'data/irish_car_sales.db'}</div>
+                <div><strong>Database Size:</strong> ${schema.database_size_bytes ? (schema.database_size_bytes / (1024*1024)).toFixed(2) + ' MB' : 'Live WAL'}</div>
+                <div><strong>Total Relational Objects:</strong> ${(schema.tables || []).length} Tables, ${(schema.views || []).length} Analytical Views</div>
+                <div><strong>Authority Sources:</strong> CSO Ireland (PxStat API) & SIMI Motorstats (Inertia Live Props)</div>
+            `;
+        }
+
+        function toggleDataset(id) {
+            const children = document.getElementById(`children-${id}`);
+            const arrow = document.getElementById(`arr-${id}`);
+            if (children) {
+                const isOpen = children.classList.toggle('open');
+                if (arrow) arrow.classList.toggle('open', isOpen);
+            }
+        }
+
+        function toggleColumnsTree(tableName) {
+            const el = document.getElementById(`cols-${tableName}`);
+            if (el) el.classList.toggle('open');
+        }
+
+        function insertColumnName(colName) {
+            const textarea = document.getElementById('sql-editor');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            textarea.value = textarea.value.substring(0, start) + colName + textarea.value.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + colName.length;
+            updateLineNumbers();
+            textarea.focus();
+        }
+
+        function quickSelectTable(tableName) {
+            const sql = `SELECT * FROM ${tableName} LIMIT 25;`;
+            document.getElementById('sql-editor').value = sql;
+            updateLineNumbers();
+            runCurrentQuery();
+        }
+
+        function setupTreeSearch() {
+            const input = document.getElementById('tree-filter-input');
+            input.addEventListener('input', (e) => {
+                const q = e.target.value.toLowerCase().trim();
+                const nodes = document.querySelectorAll('.table-item-node');
+                nodes.forEach(n => {
+                    const text = n.textContent.toLowerCase();
+                    n.style.display = text.includes(q) ? 'block' : 'none';
+                });
+            });
+
+            // Global search connects to table select
+            const gInput = document.getElementById('global-search-input');
+            gInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const term = gInput.value.trim();
+                    if (term) {
+                        document.getElementById('sql-editor').value = `SELECT * FROM ${term} LIMIT 25;`;
+                        updateLineNumbers();
+                        runCurrentQuery();
+                    }
+                }
+            });
+        }
+
+        // Recipes Drawer
+        function renderRecipes(cat) {
+            const container = document.getElementById('recipes-list-container');
+            container.innerHTML = '';
+
+            const filtered = cat === 'all' 
+                ? SAMPLE_QUERIES 
+                : SAMPLE_QUERIES.filter(q => q.category === cat);
+
+            filtered.forEach(q => {
+                const card = document.createElement('div');
+                card.className = 'recipe-card';
+                card.innerHTML = `
+                    <div class="recipe-title">${q.title}</div>
+                    <div class="recipe-desc">${q.desc}</div>
+                    <div class="recipe-code-box">${escapeHtml(q.sql)}</div>
+                    <div class="recipe-card-footer">
+                        <span class="recipe-target-tag">Target: ${q.target}</span>
+                        <div class="recipe-actions">
+                            <button class="header-action-btn" style="padding: 2px 8px;" onclick="loadRecipe('${q.id}', false)">Edit</button>
+                            <button class="btn-run" style="height: 26px; padding: 0 10px; font-size: 11px;" onclick="loadRecipe('${q.id}', true)">▶ RUN</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function setupRecipeFilters() {
+            const chips = document.querySelectorAll('.filter-chip');
+            chips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chips.forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    renderRecipes(chip.getAttribute('data-cat'));
+                });
+            });
+        }
+
+        function toggleRecipesDrawer() {
+            const drawer = document.getElementById('recipes-drawer');
+            drawer.classList.toggle('open');
+        }
+
+        function loadRecipe(id, executeImmediately) {
+            const q = SAMPLE_QUERIES.find(x => x.id === id);
+            if (!q) return;
+
+            const editor = document.getElementById('sql-editor');
+            editor.value = q.sql;
+            updateLineNumbers();
+            toggleRecipesDrawer();
+
+            if (executeImmediately) {
+                runCurrentQuery();
+            } else {
+                editor.focus();
+            }
+        }
+
+        // Sidebar & Theme Controls
+        function toggleSidebar() {
+            const sidebar = document.getElementById('studio-explorer');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const current = body.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', next);
+            document.getElementById('theme-icon').textContent = next === 'dark' ? '☀️' : '🌙';
+            try { localStorage.setItem('studio_theme', next); } catch (e) { /* storage unavailable */ }
+            if (activeChart) renderChart();
+        }
+
+        function restoreTheme() {
+            let saved = null;
+            try { saved = localStorage.getItem('studio_theme'); } catch (e) { /* storage unavailable */ }
+            if (saved !== 'light' && saved !== 'dark') return;
+            document.body.setAttribute('data-theme', saved);
+            document.getElementById('theme-icon').textContent = saved === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Query Tabs: each tab keeps its own SQL; results are shared
+        let queryTabs = [];
+        let activeTabId = null;
+        let tabCounter = 0;
+
+        function initQueryTabs(initialSql) {
+            document.getElementById('btn-add-tab').addEventListener('click', () => addQueryTab(''));
+            addQueryTab(initialSql);
+        }
+
+        function saveActiveTab() {
+            const tab = queryTabs.find(t => t.id === activeTabId);
+            if (tab) tab.sql = document.getElementById('sql-editor').value;
+        }
+
+        function addQueryTab(sql) {
+            saveActiveTab();
+            tabCounter += 1;
+            queryTabs.push({ id: tabCounter, name: `untitled_query_${tabCounter}.sql`, sql: sql || '' });
+            activateTab(tabCounter, false);
+        }
+
+        function activateTab(id, save = true) {
+            if (save) saveActiveTab();
+            activeTabId = id;
+            const tab = queryTabs.find(t => t.id === id);
+            const editor = document.getElementById('sql-editor');
+            editor.value = tab ? tab.sql : '';
+            updateLineNumbers();
+            renderQueryTabs();
+            editor.focus();
+        }
+
+        function closeQueryTab(id) {
+            const idx = queryTabs.findIndex(t => t.id === id);
+            if (idx === -1) return;
+            if (queryTabs.length === 1) {
+                // Closing the last tab leaves one empty tab
+                queryTabs[0].sql = '';
+                activateTab(queryTabs[0].id, false);
+                return;
+            }
+            queryTabs.splice(idx, 1);
+            if (id === activeTabId) {
+                activateTab(queryTabs[Math.max(0, idx - 1)].id, false);
+            } else {
+                renderQueryTabs();
+            }
+        }
+
+        function renderQueryTabs() {
+            const list = document.getElementById('query-tabs');
+            list.innerHTML = '';
+            queryTabs.forEach(tab => {
+                const el = document.createElement('div');
+                el.className = 'studio-tab' + (tab.id === activeTabId ? ' active' : '');
+                el.title = tab.name;
+                const label = document.createElement('span');
+                label.textContent = tab.name;
+                const close = document.createElement('span');
+                close.className = 'tab-close';
+                close.textContent = '×';
+                close.title = 'Close tab';
+                close.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeQueryTab(tab.id);
+                });
+                el.appendChild(label);
+                el.appendChild(close);
+                el.addEventListener('click', () => { if (tab.id !== activeTabId) activateTab(tab.id); });
+                list.appendChild(el);
+            });
+        }
+
+        // Server Status Check
+        async function checkServerStatus() {
+            try {
+                const res = await fetch('/api/status', { method: 'GET' });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('engine-status-text').textContent = `Online • ${data.database_size_mb || '1.8'} MB`;
+                }
+            } catch (err) {
+                document.getElementById('engine-status-text').textContent = "Local Server Offline";
+                document.getElementById('engine-status-badge').style.color = "var(--warn)";
+            }
+        }
+
+        // Export Utilities
+        function exportCSV() {
+            if (!currentResults.columns || currentResults.columns.length === 0) return;
+            let csv = currentResults.columns.join(',') + '\n';
+            currentResults.rows.forEach(r => {
+                csv += r.map(v => typeof v === 'string' ? `"${v.replace(/"/g, '""')}"` : v).join(',') + '\n';
+            });
+            downloadFile(csv, 'irish_car_sales_results.csv', 'text/csv');
+            showToast("Exported results to CSV");
+        }
+
+        function exportJSON() {
+            if (!currentResults.columns || currentResults.columns.length === 0) return;
+            const records = currentResults.rows.map(r => {
+                const obj = {};
+                currentResults.columns.forEach((c, idx) => { obj[c] = r[idx]; });
+                return obj;
+            });
+            downloadFile(JSON.stringify(records, null, 2), 'irish_car_sales_results.json', 'application/json');
+            showToast("Exported results to JSON");
+        }
+
+        function copyResultsToClipboard() {
+            if (!currentResults.columns || currentResults.columns.length === 0) return;
+            let text = currentResults.columns.join('\t') + '\n';
+            currentResults.rows.forEach(r => {
+                text += r.join('\t') + '\n';
+            });
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Results copied to clipboard (TSV)");
+            });
+        }
+
+        function downloadFile(content, fileName, contentType) {
+            const a = document.createElement('a');
+            const file = new Blob([content], { type: contentType });
+            a.href = URL.createObjectURL(file);
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function copyText(txt) {
+            navigator.clipboard.writeText(txt).then(() => {
+                showToast(`Copied '${txt}'`);
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('studio-toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2200);
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

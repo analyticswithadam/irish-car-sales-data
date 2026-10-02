@@ -58,6 +58,12 @@ def ensure_database(db_path='data/irish_car_sales.db', force_update=False, verbo
     try:
         from build_database import auto_pull_and_build
         auto_pull_and_build(db_path=db_path)
+    except ModuleNotFoundError as e:
+        req = os.path.join(os.path.dirname(script_dir), 'requirements.txt')
+        hint = f"pip install -r {req}" if os.path.exists(req) else f"pip install {e.name}"
+        print(f"[AutoBuild] Building the database needs the '{e.name}' package. Install it with:\n    {hint}",
+              file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         print(f"[AutoBuild] Error building database: {e}", file=sys.stderr)
         import traceback

@@ -43,14 +43,14 @@ flowchart TD
         UpdateCheck{"--update flag<br/>passed?"}
     end
 
-    subgraph AutoBuild ["Live API Ingestion (10s Auto-Build)"]
+    subgraph AutoBuild ["Live API Ingestion (auto-build, a few seconds)"]
         P_SIMI["pull_simi.py<br/>(Laravel Inertia Deferred Props)"]
         P_CSO["pull_cso.py<br/>(CSO PxStat REST API)"]
         B_DB["build_database.py<br/>(atomic swap, indexing, analytical views)"]
     end
 
     subgraph Analytics ["Analytics Engine (data/irish_car_sales.db)"]
-        DB["18 Base Normalized Tables<br/>+ 5 Analytical Dynamic Views"]
+        DB["21 data tables + _build_info<br/>+ 5 analytical views (+1 legacy alias)"]
     end
 
     subgraph Execution ["Downstream Execution"]
@@ -75,6 +75,8 @@ flowchart TD
 ## 2. Quickstart Reference
 
 ### 2.1 Ensuring the Database is Ready
+Building the database needs pandas. If it is missing, install it first with `pip install -r requirements.txt` (from the skill folder). Querying needs only the standard library.
+
 Before running any analysis, simply call `ensure_data.py`:
 
 ```bash
@@ -112,7 +114,7 @@ python3 scripts/query_db.py "SELECT transmission, units_latest, market_share_pct
 
 ## 3. Database Schema & Tables Reference
 
-The database `data/irish_car_sales.db` (SQLite 3, WAL mode) organizes 18 base tables (including `_build_info`, which records the schema version, build time and latest period of each source) and 5 analytical views. `query_db.py` uses only the standard library, so each query returns in about 30 ms:
+The database `data/irish_car_sales.db` (SQLite 3, WAL mode) holds 21 data tables, a `_build_info` table (schema version, build time and latest period of each source), 5 analytical views and 1 legacy alias view. `query_db.py` uses only the standard library, so each query returns in about 30 ms:
 
 ### 3.1 Curated Analytical Views
 | View Name | Primary Source | Timeframe | Description & Invariant Columns |
@@ -122,6 +124,7 @@ The database `data/irish_car_sales.db` (SQLite 3, WAL mode) organizes 18 base ta
 | `v_county_ev_ranking_latest`| CSO `TEM27` | Dynamic Latest Year | Dynamically resolves the latest reporting year in the database. Returns `licensing_authority`, `year`, `ev_units`, `total_units`, `ev_penetration_pct`, `share_of_national_ev_pct`. |
 | `v_model_historical_trajectory`| CSO `TEM20` | 2014 – Present | Multi-year model-level sales volumes for 330+ models (e.g., Volkswagen ID.4, Tesla Model 3/Y, Hyundai Tucson). |
 | `v_make_annual` | CSO `TEM20` | 2014 – Present | Annual units and market share per make: `year`, `make`, `units`, `market_units`, `market_share_pct`, `months_reported` (< 12 means a partial year). Use this for any brand history question. |
+| `v_county_ev_ranking_2026` | CSO `TEM27` | Legacy alias | Kept for older queries only. Same rows as `v_county_ev_ranking_latest` with `_2026` column names, whatever the latest year is. Use `v_county_ev_ranking_latest` instead. |
 
 ### 3.2 Time-Invariant SIMI Base Tables
 Every SIMI table includes both dynamic annual columns (`units_YYYY`) and standardized invariant columns:
@@ -233,8 +236,11 @@ The skill includes standalone utilities in its `scripts/` directory:
 | `scripts/query_db.py` | Command-line SQL query tool supporting table, CSV, and JSON output formats. Auto-calls `ensure_data.py`. |
 | `scripts/build_database.py`| Automated ETL script building the indexed SQLite database with `--auto-pull` capability. |
 | `scripts/pull_simi.py` | Complete Inertia.js crawler extracting Passenger, LCV, HCV, and Bus with invariant columns. |
+| `scripts/http_util.py` | Shared HTTPS helper for the two downloaders. Verifies certificates, and on failure retries without verification and warns. `IRISH_CAR_SALES_STRICT_SSL=1` fails instead; `IRISH_CAR_SALES_INSECURE_SSL=1` skips verification. |
 | `scripts/pull_cso.py` | Direct streaming client for CSO PxStat API tables `TEM01`, `TEM12`, `TEM20`, `TEM27`. |
 | `scripts/analyze_ev_story.py`| Futureproof metric extractor computing KPIs dynamically from data into `data/ev_story_metrics.json`. |
+| `scripts/build_make_comparison.py` | Interactive two-make comparison page (single HTML file) with an animated race. `--makes TESLA BYD` writes `tesla_vs_byd.html`: rolling-12-month, monthly, by-year and cumulative views as cars or market share, a Play/scrub race, model-launch markers, the lead-change point, the model mix for any period, and a table view. Reads CSO TEM20, so re-run it after `ensure_data.py --update`. Add `--fragment` to omit `<html>/<head>/<body>` for hosts that wrap pages. |
+| `scripts/sql_studio.py` | Irish Car Sales SQL Studio: a local, read-only web SQL workbench over the database. Run `python3 scripts/sql_studio.py` (options: `--port`, default 8080 or the next free port; `--host`; `--no-browser`; `--db-path`, default `data/irish_car_sales.db` relative to the folder you run from, the same database the other scripts use). It serves `sql_studio.html` with a table and view explorer, 20 ready-made query recipes, a results grid with CSV/JSON export, and a chart view. Write statements are blocked. |
 
 ---
 

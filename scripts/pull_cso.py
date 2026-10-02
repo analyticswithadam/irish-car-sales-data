@@ -14,7 +14,7 @@ Usage:
 """
 
 import urllib.request
-import ssl
+from http_util import open_url
 import gzip
 import json
 import os
@@ -22,10 +22,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-# Certificate verification is off because some networks intercept TLS with a self-signed proxy cert.
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
+# HTTPS goes through http_util.open_url: certificates are verified, with a guarded fallback.
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
@@ -59,7 +56,7 @@ CSO_TABLES = [
 
 def fetch_bytes(url, timeout=60):
     req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, context=ctx, timeout=timeout) as resp:
+    with open_url(req, timeout=timeout) as resp:
         body = resp.read()
         if resp.headers.get('Content-Encoding') == 'gzip':
             body = gzip.decompress(body)
