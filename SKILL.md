@@ -235,6 +235,7 @@ The skill includes standalone utilities in its `scripts/` directory:
 | `scripts/pull_simi.py` | Complete Inertia.js crawler extracting Passenger, LCV, HCV, and Bus with invariant columns. |
 | `scripts/pull_cso.py` | Direct streaming client for CSO PxStat API tables `TEM01`, `TEM12`, `TEM20`, `TEM27`. |
 | `scripts/analyze_ev_story.py`| Futureproof metric extractor computing KPIs dynamically from data into `data/ev_story_metrics.json`. |
+| `scripts/build_make_comparison.py` | Interactive two-make comparison page (single HTML file) with an animated race. `--makes TESLA BYD` writes `tesla_vs_byd.html`: rolling-12-month, monthly, by-year and cumulative views as cars or market share, a Play/scrub race, model-launch markers, the lead-change point, the model mix for any period, and a table view. Reads CSO TEM20, so re-run it after `ensure_data.py --update`. Add `--fragment` to omit `<html>/<head>/<body>` for hosts that wrap pages. |
 
 ---
 

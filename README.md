@@ -37,7 +37,8 @@ Built for AI coding assistants, autonomous agents, data scientists, and automoti
     ├── build_database.py        # Automated ETL pipeline with indexes & views
     ├── pull_simi.py             # Laravel Inertia crawler for SIMI Motorstats
     ├── pull_cso.py              # Direct streaming client for CSO PxStat cubes
-    └── analyze_ev_story.py      # Dynamic KPI & metric extraction engine
+    ├── analyze_ev_story.py      # Dynamic KPI & metric extraction engine
+    └── build_make_comparison.py # Interactive two-make race chart (e.g. --makes TESLA BYD)
 ```
 
 ---
