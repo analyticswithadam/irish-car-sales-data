@@ -17,23 +17,16 @@ import webbrowser
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse
 
-# Ensure repository root is on sys.path
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-if not os.path.exists(os.path.join(REPO_ROOT, "data")):
-    # If running inside skill standalone directory
-    REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# Same layout in the project and in the bundled skill: sql_studio.html sits next to scripts/.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+from ensure_data import ensure_database
 
-if REPO_ROOT not in sys.path:
-    sys.path.insert(0, REPO_ROOT)
-
-try:
-    from scripts.ensure_data import ensure_database
-except ImportError:
-    def ensure_database(path):
-        return path
-
-DEFAULT_DB_PATH = os.path.join(REPO_ROOT, "data", "irish_car_sales.db")
-HTML_PATH = os.path.join(REPO_ROOT, "sql_studio.html")
+HTML_PATH = os.path.join(os.path.dirname(SCRIPT_DIR), "sql_studio.html")
+# Like every other script, the database lives in data/ under the folder you run from (--db-path overrides).
+SERVE_ROOT = os.getcwd()
+DEFAULT_DB_PATH = os.path.join(SERVE_ROOT, "data", "irish_car_sales.db")
 
 
 def get_db_connection(db_path=DEFAULT_DB_PATH):
@@ -57,7 +50,7 @@ def introspect_schema(db_path=DEFAULT_DB_PATH):
         "total_tables": 0,
         "total_views": 0,
         "database_size_bytes": os.path.getsize(db_path) if os.path.exists(db_path) else 0,
-        "database_path": os.path.relpath(db_path, REPO_ROOT),
+        "database_path": os.path.relpath(db_path, SERVE_ROOT),
     }
 
     cur.execute("""
@@ -191,7 +184,7 @@ class SQLStudioHandler(SimpleHTTPRequestHandler):
     """Custom HTTP handler serving sql_studio.html and providing /api endpoints."""
     
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=REPO_ROOT, **kwargs)
+        super().__init__(*args, directory=SERVE_ROOT, **kwargs)
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -245,7 +238,7 @@ class SQLStudioHandler(SimpleHTTPRequestHandler):
         data = {
             "status": "online",
             "database_exists": exists,
-            "database_path": os.path.relpath(db_path, REPO_ROOT),
+            "database_path": os.path.relpath(db_path, SERVE_ROOT),
             "database_size_mb": size_mb,
             "timestamp": time.time(),
             "server_version": "1.0.0"
@@ -313,11 +306,14 @@ def find_free_port(start_port=8080, max_attempts=50):
 
 
 def main():
+    global DEFAULT_DB_PATH
     parser = argparse.ArgumentParser(description="Irish Car Sales SQL Studio Server")
     parser.add_argument("--port", type=int, default=8080, help="Port to serve on (default: 8080 or next free)")
     parser.add_argument("--host", default="127.0.0.1", help="Host address (default: 127.0.0.1)")
     parser.add_argument("--no-browser", action="store_true", help="Do not automatically open browser")
+    parser.add_argument("--db-path", default=DEFAULT_DB_PATH, help="Path to the SQLite database (default: data/irish_car_sales.db)")
     args = parser.parse_args()
+    DEFAULT_DB_PATH = os.path.abspath(args.db_path)
 
     ensure_database(DEFAULT_DB_PATH)
 
@@ -330,7 +326,7 @@ def main():
     print(" 🚗 IRISH CAR SALES SQL STUDIO & SCHEMA EXPLORER")
     print("=" * 65)
     print(f" • Local Web Studio:   {url}")
-    print(f" • Database:           {os.path.relpath(DEFAULT_DB_PATH, REPO_ROOT)} (SQLite 3 WAL)")
+    print(f" • Database:           {os.path.relpath(DEFAULT_DB_PATH, SERVE_ROOT)} (SQLite 3 WAL)")
     print(f" • REST API Query:     {url}api/query")
     print(f" • REST API Schema:    {url}api/schema")
     print("=" * 65)

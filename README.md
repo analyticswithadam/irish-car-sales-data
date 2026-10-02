@@ -27,6 +27,8 @@ Built for AI coding assistants, autonomous agents, data scientists, and automoti
 ├── SKILL.md                     # Agent skill instruction manifesto & quickstart
 ├── README.md                    # Project overview & developer guide
 ├── .gitignore                   # Ignores local databases & cache files
+├── requirements.txt             # Python dependencies (pandas)
+├── sql_studio.html              # SQL Studio web page (served by scripts/sql_studio.py)
 ├── references/                  # In-depth architectural & domain references
 │   ├── cso_table_catalog.md     # CSO PxStat REST APIs, schemas & cell-limit rules
 │   ├── simi_api_reference.md    # Laravel Inertia deferred props extraction protocol
@@ -37,15 +39,23 @@ Built for AI coding assistants, autonomous agents, data scientists, and automoti
     ├── build_database.py        # Automated ETL pipeline with indexes & views
     ├── pull_simi.py             # Laravel Inertia crawler for SIMI Motorstats
     ├── pull_cso.py              # Direct streaming client for CSO PxStat cubes
+    ├── http_util.py             # Shared HTTPS helper (certificate checks with a guarded fallback)
     ├── analyze_ev_story.py      # Dynamic KPI & metric extraction engine
-    └── build_make_comparison.py # Interactive two-make race chart (e.g. --makes TESLA BYD)
+    ├── build_make_comparison.py # Interactive two-make race chart (e.g. --makes TESLA BYD)
+    └── sql_studio.py            # Local SQL Studio server (read-only web SQL workbench)
 ```
 
 ---
 
 ## Quickstart
 
-### 1. Ensure the Database is Ready (Auto-Build)
+### 1. Install the Dependency
+Building the database needs pandas (querying it does not):
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Ensure the Database is Ready (Auto-Build)
 ```bash
 # Verify or auto-pull & build data/irish_car_sales.db
 python3 scripts/ensure_data.py
@@ -54,7 +64,7 @@ python3 scripts/ensure_data.py
 python3 scripts/ensure_data.py --update
 ```
 
-### 2. Querying via CLI
+### 3. Querying via CLI
 ```bash
 # List all tables and views
 python3 scripts/query_db.py --tables
@@ -72,7 +82,16 @@ python3 scripts/query_db.py "SELECT make, year_latest, units_latest, market_shar
 python3 scripts/query_db.py "SELECT transmission, units_latest, market_share_pct_latest FROM simi_passenger_transmissions" --format json
 ```
 
-### 3. Programmatic Python Usage
+### 4. SQL Studio (Web Workbench)
+```bash
+# Start the local server and open the studio in your browser
+python3 scripts/sql_studio.py
+
+# Options: --port 8090, --db-path data/irish_car_sales.db, --no-browser
+```
+The studio has a table and view explorer, 20 ready-made query recipes, a results grid with CSV/JSON export, and a chart view. It is read-only: write statements are blocked. Open it through the server, not by double-clicking `sql_studio.html`, because queries need the server. It uses the same `data/irish_car_sales.db` as the other scripts, relative to the folder you run it from.
+
+### 5. Programmatic Python Usage
 ```python
 import sqlite3
 import pandas as pd
@@ -94,6 +113,11 @@ conn.close()
 
 ---
 
+### HTTPS Certificates
+The downloaders verify HTTPS certificates. If verification fails (a network proxy that intercepts HTTPS, or a python.org install on macOS that hasn't run `Install Certificates.command`), they retry without verification and print a warning, since both sources are public statistics. Set `IRISH_CAR_SALES_STRICT_SSL=1` to stop instead, or `IRISH_CAR_SALES_INSECURE_SSL=1` to skip verification from the start.
+
+---
+
 ## Core Analytical Views
 
 | View Name | Primary Source | Description |
@@ -101,19 +125,20 @@ conn.close()
 | `v_powertrain_annual` | CSO `TEM12` | 2015–Present volumes & shares for BEV, Diesel, Petrol, Hybrids (HEV), and PHEVs. |
 | `v_ev_vs_diesel_crossover`| CSO `TEM12` | Monthly time series of Electric vs Diesel units and `ev_to_diesel_ratio`. |
 | `v_county_ev_ranking_latest`| CSO `TEM27` | Dynamically resolves the latest year. Returns `licensing_authority`, `year`, `ev_units`, `total_units`, `ev_penetration_pct`, `share_of_national_ev_pct`. |
-| `v_model_historical_trajectory`| CSO `TEM20` | Multi-year model-level sales volumes across 330+ distinct makes and models. |
+| `v_model_historical_trajectory`| CSO `TEM20` | Multi-year model-level sales volumes for 330 models across 40 makes. |
 | `v_make_annual` | CSO `TEM20` | Annual units and market share per make, with `months_reported` to flag partial years. |
+| `v_county_ev_ranking_2026` | CSO `TEM27` | Legacy alias of `v_county_ev_ranking_latest` with `_2026` column names. Kept for older queries; use the `_latest` view instead. |
 
 ---
 
-## Installation in Agentic IDEs
+## Installing the Skill
 
-To install this skill into an **Antigravity** or agentic coding workspace:
-1. Clone this repository into your workspace customizations folder:
+To use this skill with an agentic coding tool:
+1. Clone this repository into your project's skills folder. The command below uses `.agents/skills/`; if your tool reads skills from a different folder (Claude Code uses `.claude/skills/`), clone it there instead:
    ```bash
    git clone https://github.com/analyticswithadam/irish-car-sales-data.git .agents/skills/irish-car-sales-data
    ```
-2. The agent will automatically discover `SKILL.md` and utilize the tools, scripts, and analytical database.
+2. The agent discovers `SKILL.md` and uses its scripts and database. The first query builds the database automatically.
 
 ---
 

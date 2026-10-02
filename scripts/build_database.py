@@ -225,12 +225,18 @@ def _load_all(conn, cursor, cso_dir, simi_dir, previous_db=None):
             loaded += 1
     print(f"  -> {loaded} SIMI tables")
 
+    # A SIMI category can fail on its own (e.g. passenger cars while vans succeed), so carry over
+    # every SIMI table this pull did not produce, not only when all of them are missing.
+    carried_date = None
+    if loaded < len(simi_files) and previous_db and os.path.exists(previous_db):
+        carried_date = _carry_over_simi(conn, previous_db)
+
     raw = os.path.join(simi_dir, 'simi_passenger_raw.json')
     if os.path.exists(raw):
         with open(raw) as f:
             info['simi_environment_date'] = json.load(f).get('_meta', {}).get('environmentDate')
-    elif loaded == 0 and previous_db and os.path.exists(previous_db):
-        info['simi_environment_date'] = _carry_over_simi(conn, previous_db)
+    else:
+        info['simi_environment_date'] = carried_date
 
     # =========================================================================
     # 3. CREATE FUTUREPROOF ANALYTICAL VIEWS
@@ -353,26 +359,30 @@ def _load_all(conn, cursor, cso_dir, simi_dir, previous_db=None):
         cursor.execute(f"CREATE VIEW {name} AS {sql};")
 
     cursor.execute("CREATE TABLE _build_info (key TEXT PRIMARY KEY, value TEXT);")
-    cursor.executemany("INSERT INTO _build_info VALUES (?, ?);", [(k, str(v)) for k, v in info.items()])
+    cursor.executemany("INSERT INTO _build_info VALUES (?, ?);", [(k, str(v)) for k, v in info.items() if v is not None])
 
 def _carry_over_simi(conn, previous_db):
-    """When SIMI could not be fetched, copies the simi_* tables from the database being replaced
-    so a rebuild never loses them. Returns the carried-over SIMI date, if recorded."""
+    """When some or all SIMI categories could not be fetched, copies the simi_* tables this build is
+    missing from the database being replaced, so a rebuild never loses them.
+    Returns the carried-over SIMI date, if recorded."""
+    present = {r[0] for r in conn.execute("SELECT name FROM main.sqlite_master WHERE type = 'table'")}
     conn.execute("ATTACH DATABASE ? AS prev", (previous_db,))
     try:
         tables = [r[0] for r in conn.execute(
-            "SELECT name FROM prev.sqlite_master WHERE type = 'table' AND name LIKE 'simi\\_%' ESCAPE '\\'")]
+            "SELECT name FROM prev.sqlite_master WHERE type = 'table' AND name LIKE 'simi\\_%' ESCAPE '\\'")
+            if r[0] not in present]
         for t in tables:
             conn.execute(f'CREATE TABLE "{t}" AS SELECT * FROM prev."{t}"')
         try:
             date = conn.execute("SELECT value FROM prev._build_info WHERE key = 'simi_environment_date'").fetchone()
-            date = date[0] if date else None
+            date = date[0] if date and date[0] not in ('', 'None') else None
         except sqlite3.Error:
             date = None
         conn.commit()
     finally:
         conn.execute("DETACH DATABASE prev")
-    print(f"  [warn] SIMI unavailable: kept {len(tables)} SIMI tables from the previous database", file=sys.stderr)
+    if tables:
+        print(f"  [warn] SIMI incomplete: kept {len(tables)} SIMI tables from the previous database", file=sys.stderr)
     return date
 
 def auto_pull_and_build(db_path='data/irish_car_sales.db'):

@@ -6,7 +6,7 @@ Futureproof design: provides both dynamic annual columns (units_YYYY) and normal
 """
 
 import urllib.request
-import ssl
+from http_util import open_url
 import json
 import re
 import html
@@ -17,10 +17,7 @@ import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-# Certificate verification is off because some networks intercept TLS with a self-signed proxy cert.
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
+# HTTPS goes through http_util.open_url: certificates are verified, with a guarded fallback.
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -29,7 +26,7 @@ HEADERS = {
 def fetch_simi_category(category=''):
     url = f'https://stats.simi.ie/{category}'
     req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, context=ctx, timeout=60) as resp:
+    with open_url(req, timeout=60) as resp:
         content = resp.read().decode('utf-8', errors='ignore')
         
     m = re.search(r'data-page=\"([^\"]+)\"', content)
@@ -59,7 +56,7 @@ def fetch_simi_category(category=''):
             'X-Requested-With': 'XMLHttpRequest'
         }
     )
-    with urllib.request.urlopen(req2, context=ctx, timeout=60) as resp2:
+    with open_url(req2, timeout=60) as resp2:
         res = json.loads(resp2.read().decode('utf-8'))
         props = res.get('props', {})
         props['_meta'] = {
